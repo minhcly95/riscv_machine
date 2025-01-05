@@ -1,0 +1,14 @@
+${PROJ_DIR}/rtl/core/core_pkg.sv
+${PROJ_DIR}/rtl/core/exec/core_decoder.sv
+${PROJ_DIR}/rtl/core/exec/core_imm_parser.sv
+${PROJ_DIR}/rtl/core/exec/core_alu_src_sel.sv
+${PROJ_DIR}/rtl/core/exec/core_alu.sv
+${PROJ_DIR}/rtl/core/exec/core_pc_new_sel.sv
+${PROJ_DIR}/rtl/core/core_controller.sv
+${PROJ_DIR}/rtl/core/core_stage_fetch.sv
+${PROJ_DIR}/rtl/core/core_stage_exec.sv
+${PROJ_DIR}/rtl/core/core_stage_mem.sv
+${PROJ_DIR}/rtl/core/core_reg_file.sv
+${PROJ_DIR}/rtl/core/core_mem_if.sv
+${PROJ_DIR}/rtl/core/core_wb_mux.sv
+${PROJ_DIR}/rtl/core/core_top.sv
