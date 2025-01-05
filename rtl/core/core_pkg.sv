@@ -26,7 +26,8 @@ package core_pkg;
     typedef enum logic [1:0] {
         SRC_RR,
         SRC_RI,
-        SRC_PI
+        SRC_PI,
+        SRC_ZI
     } alu_src_e;
 
     typedef enum logic [3:0] {

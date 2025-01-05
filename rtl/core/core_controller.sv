@@ -17,6 +17,7 @@ module core_controller (
 
     // State definition
     typedef enum logic [1:0] {
+        IDLE,
         FETCH,
         EXEC,
         MEM
@@ -27,7 +28,7 @@ module core_controller (
     state_e next_state;
 
     always_ff @(posedge clk or negedge rst_n) begin
-        if (~rst_n) curr_state <= FETCH;
+        if (~rst_n) curr_state <= IDLE;
         else        curr_state <= next_state;
     end
 
@@ -36,10 +37,10 @@ module core_controller (
     // If ~mem_op: FETCH -> EXEC -> FETCH
     always_comb begin
         case (curr_state)
+            IDLE:    next_state = FETCH;
             FETCH:   next_state = fetch_stage_ready ? EXEC : FETCH;
             EXEC:    next_state = exec_stage_ready  ? (mem_op ? MEM : FETCH) : EXEC;
             MEM:     next_state = mem_stage_ready   ? FETCH : MEM;
-            default: next_state = FETCH;
         endcase
     end
 

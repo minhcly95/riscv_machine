@@ -73,8 +73,8 @@ For narrow write transfer, write strobes should be used.
 The Decoder is a subcomponent of the `EXEC` stage. Its job is to decode the instruction fetched from the `FETCH` stage
 into the following conditions:
 - Immediate type: `I`, `S`, `B`, `U`, `J`.
-- ALU sources: `RR` (Reg + Reg), `RI` (Reg + Imm), `PI` (PC + Imm).
-- ALU operation: `IMM`, `ADD`, `SUB`, `SLT`, `SLTU`, `AND`, `OR`, `XOR`, `SLL`, `SRL`, `SRA`.
+- ALU sources: `RR` (Reg + Reg), `RI` (Reg + Imm), `PI` (PC + Imm), `ZI` (Zero + Imm).
+- ALU operation: `ADD`, `SUB`, `SLT`, `SLTU`, `AND`, `OR`, `XOR`, `SLL`, `SRL`, `SRA`.
 - Write-back source: `NONE`, `ALU`, `PC4`, `MEM`.
 - PC source: `NONE`, `JUMP`, `BR_Z` (branch on zero), `BR_NZ` (branch on non-zero).
 - Mem operation: `NONE`, `READ`, `WRITE`.
@@ -103,7 +103,7 @@ into the following conditions:
 | `SLLI`  | `I`      | `RI`    | `SLL`  | `ALU`   |         |         |             |
 | `SRLI`  | `I`      | `RI`    | `SRL`  | `ALU`   |         |         |             |
 | `SRAI`  | `I`      | `RI`    | `SRA`  | `ALU`   |         |         |             |
-| `LUI`   | `U`      | `PI`    | `IMM`  | `ALU`   |         |         |             |
+| `LUI`   | `U`      | `ZI`    | `ADD`  | `ALU`   |         |         |             |
 | `AUIPC` | `U`      | `PI`    | `ADD`  | `ALU`   |         |         |             |
 | `JAL`   | `J`      | `PI`    | `ADD`  | `PC4`   | `JUMP`  |         |             |
 | `JALR`  | `I`      | `RI`    | `ADD`  | `PC4`   | `JUMP`  |         |             |

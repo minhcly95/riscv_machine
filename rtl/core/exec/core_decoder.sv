@@ -23,7 +23,7 @@ module core_decoder (
         1                 +     // For mem_op
         $bits(mem_dir_e);
 
-    logic [6:0] opcode;
+    opcode_e    opcode;
     logic [2:0] funct3;
 
     logic       is_shift_op;
@@ -33,7 +33,7 @@ module core_decoder (
     logic [CTRL_W-1:0] ctrl;
 
     // Decompose into components
-    assign opcode = instr[6:0];
+    assign opcode = opcode_e'(instr[6:0]);
     assign funct3 = instr[14:12];
 
     // Aggregate all the controls
@@ -44,7 +44,7 @@ module core_decoder (
         case (opcode)
             OP_OP:      ctrl = {IMM_I, SRC_RR, WB_EXEC,  PC_NORMAL, 1'b0, MEM_READ};
             OP_OPIMM:   ctrl = {IMM_I, SRC_RI, WB_EXEC,  PC_NORMAL, 1'b0, MEM_READ};
-            OP_LUI:     ctrl = {IMM_U, SRC_PI, WB_EXEC,  PC_NORMAL, 1'b0, MEM_READ};
+            OP_LUI:     ctrl = {IMM_U, SRC_ZI, WB_EXEC,  PC_NORMAL, 1'b0, MEM_READ};
             OP_AUIPC:   ctrl = {IMM_U, SRC_PI, WB_EXEC,  PC_NORMAL, 1'b0, MEM_READ};
             OP_JAL:     ctrl = {IMM_J, SRC_PI, WB_FETCH, PC_JUMP,   1'b0, MEM_READ};  
             OP_JALR:    ctrl = {IMM_I, SRC_RI, WB_FETCH, PC_JUMP,   1'b0, MEM_READ};

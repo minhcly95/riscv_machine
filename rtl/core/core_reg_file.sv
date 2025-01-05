@@ -20,7 +20,7 @@ module core_reg_file (
 
     // Write port
     always_ff @(posedge clk) begin
-        if (reg_d_en & reg_d_write)
+        if (reg_d_en & reg_d_write & (reg_d_id != 0))
             reg_mem[reg_d_id] <= reg_d_value;
     end
 

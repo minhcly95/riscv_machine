@@ -27,9 +27,9 @@ module core_alu_src_sel (
                 src_a = pc;
                 src_b = imm_val;
             end
-            default: begin  // Should not happen
-                src_a = 'x;
-                src_b = 'x;
+            SRC_ZI: begin
+                src_a = 32'b0;
+                src_b = imm_val;
             end
         endcase
     end

@@ -12,3 +12,5 @@ ${PROJ_DIR}/rtl/core/core_reg_file.sv
 ${PROJ_DIR}/rtl/core/core_mem_if.sv
 ${PROJ_DIR}/rtl/core/core_wb_mux.sv
 ${PROJ_DIR}/rtl/core/core_top.sv
+${PROJ_DIR}/rtl/top/ram.sv
+${PROJ_DIR}/rtl/top/top.sv
