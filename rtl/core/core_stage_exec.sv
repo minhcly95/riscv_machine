@@ -33,6 +33,7 @@ module core_stage_exec (
     alu_op_e      alu_op;
     pc_src_e      pc_src;
     br_type_e     br_type;
+    logic         ecall;
 
     // Immediate value
     logic [31:0]  imm_val;
@@ -44,9 +45,12 @@ module core_stage_exec (
     // Branch target
     logic [31:0]  br_target;
 
+    // To FETCH
+    logic         in_pc_new_valid;
+
     // ------------------ Controller ------------------
-    // Ignore exec_stage_valid, always ready
-    assign exec_stage_ready = 1'b1;
+    // Hang when opcode is ECALL
+    assign exec_stage_ready = ~ecall;
 
     // ------------------- Decoder --------------------
     core_decoder u_decoder(
@@ -59,7 +63,8 @@ module core_stage_exec (
         .br_type      (br_type),
         .mem_op       (mem_op),
         .mem_dir      (mem_dir),
-        .mem_size     (mem_size)
+        .mem_size     (mem_size),
+        .ecall        (ecall)
     );
 
     assign reg_d_id = instr[11:7];
@@ -100,9 +105,11 @@ module core_stage_exec (
         .br_type       (br_type),
         .alu_result    (alu_result),
         .br_target     (br_target),
-        .pc_new_valid  (pc_new_valid),
+        .pc_new_valid  (in_pc_new_valid),
         .pc_new        (pc_new)
     );
+
+    assign pc_new_valid = in_pc_new_valid & exec_stage_valid & exec_stage_ready;
 
     // ------------------ MEM stage -------------------
     assign mem_addr  = alu_result;

@@ -10,7 +10,8 @@ module core_decoder (
     output core_pkg::br_type_e   br_type,
     output logic                 mem_op,
     output core_pkg::mem_dir_e   mem_dir,
-    output core_pkg::mem_size_e  mem_size
+    output core_pkg::mem_size_e  mem_size,
+    output logic                 ecall
 );
 
     import core_pkg::*;
@@ -92,5 +93,8 @@ module core_decoder (
             default: br_type = BRANCH_Z;
         endcase
     end
+
+    // ECALL command
+    assign ecall = (opcode == OP_SYSTEM) & (instr[31:7] == 0);
 
 endmodule

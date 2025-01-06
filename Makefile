@@ -1,4 +1,4 @@
-.PHONY: lint sim wave asm clean clean-lint clean-sim clean-asm
+.PHONY: lint sim wave asm isa clean clean-lint clean-sim clean-asm clean-isa
 
 PROJ_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 export PROJ_DIR
@@ -6,7 +6,7 @@ export PROJ_DIR
 lint:
 	verilator --lint-only --no-std --top top -Wall -f lint/lint_err.lst -f rtl/rtl.lst |& tee lint/lint.log
 
-sim: asm
+sim: asm isa
 	$(MAKE) -C tb
 
 wave:
@@ -15,7 +15,10 @@ wave:
 asm:
 	$(MAKE) -C asm asm
 
-clean: clean-lint clean-sim clean-asm
+isa:
+	$(MAKE) -C isa isa
+
+clean: clean-lint clean-sim clean-asm clean-isa
 
 clean-lint:
 	rm lint/*.log
@@ -26,3 +29,6 @@ clean-sim:
 
 clean-asm:
 	$(MAKE) -C asm clean
+
+clean-isa:
+	$(MAKE) -C isa clean

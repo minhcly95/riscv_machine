@@ -12,7 +12,7 @@ module core_reg_file (
     input  logic [31:0]  reg_d_value
 );
 
-    logic [31:0][31:0] reg_mem;
+    logic [31:0] reg_mem[32];
 
     // Read ports
     assign reg_a_value = reg_mem[reg_a_id];
