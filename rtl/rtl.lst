@@ -1,8 +1,10 @@
 ${PROJ_DIR}/rtl/core/core_pkg.sv
 ${PROJ_DIR}/rtl/core/exec/core_decoder.sv
 ${PROJ_DIR}/rtl/core/exec/core_imm_parser.sv
-${PROJ_DIR}/rtl/core/exec/core_alu_src_sel.sv
+${PROJ_DIR}/rtl/core/exec/core_exec_src_sel.sv
+${PROJ_DIR}/rtl/core/exec/core_exec_engine_sel.sv
 ${PROJ_DIR}/rtl/core/exec/core_alu.sv
+${PROJ_DIR}/rtl/core/exec/core_mul.sv
 ${PROJ_DIR}/rtl/core/exec/core_pc_new_sel.sv
 ${PROJ_DIR}/rtl/core/core_controller.sv
 ${PROJ_DIR}/rtl/core/core_stage_fetch.sv

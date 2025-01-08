@@ -1,6 +1,6 @@
-module core_alu_src_sel (
+module core_exec_src_sel (
     // From Decoder
-    input  core_pkg::alu_src_e   alu_src,
+    input  core_pkg::exec_src_e  exec_src,
     // Inputs
     input  logic [31:0]          reg_a_value,
     input  logic [31:0]          reg_b_value,
@@ -14,7 +14,7 @@ module core_alu_src_sel (
     import core_pkg::*;
 
     always_comb begin
-        case (alu_src)
+        case (exec_src)
             SRC_RR: begin
                 src_a = reg_a_value;
                 src_b = reg_b_value;

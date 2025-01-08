@@ -1,24 +1,26 @@
 module core_decoder (
     // Instruction
-    input  logic [31:0]          instr,
+    input  logic [31:0]             instr,
     // Control signals
-    output core_pkg::imm_type_e  imm_type,
-    output core_pkg::alu_src_e   alu_src,
-    output core_pkg::alu_op_e    alu_op,
-    output core_pkg::wb_src_e    wb_src,
-    output core_pkg::pc_src_e    pc_src,
-    output core_pkg::br_type_e   br_type,
-    output logic                 mem_op,
-    output core_pkg::mem_dir_e   mem_dir,
-    output core_pkg::mem_size_e  mem_size,
-    output logic                 ecall
+    output core_pkg::imm_type_e     imm_type,
+    output core_pkg::exec_src_e     exec_src,
+    output core_pkg::alu_op_e       alu_op,
+    output core_pkg::mul_op_e       mul_op,
+    output core_pkg::exec_engine_e  exec_engine,
+    output core_pkg::wb_src_e       wb_src,
+    output core_pkg::pc_src_e       pc_src,
+    output core_pkg::br_type_e      br_type,
+    output logic                    mem_op,
+    output core_pkg::mem_dir_e      mem_dir,
+    output core_pkg::mem_size_e     mem_size,
+    output logic                    ecall
 );
 
     import core_pkg::*;
 
     localparam CTRL_W =
         $bits(imm_type_e) +
-        $bits(alu_src_e)  +
+        $bits(exec_src_e) +
         $bits(wb_src_e)   +
         $bits(pc_src_e)   +
         1                 +     // For mem_op
@@ -38,7 +40,7 @@ module core_decoder (
     assign funct3 = instr[14:12];
 
     // Aggregate all the controls
-    assign {imm_type, alu_src, wb_src, pc_src, mem_op, mem_dir} = ctrl;
+    assign {imm_type, exec_src, wb_src, pc_src, mem_op, mem_dir} = ctrl;
 
     // Main decode table
     always_comb begin
@@ -54,6 +56,18 @@ module core_decoder (
             OP_STORE:   ctrl = {IMM_S, SRC_RI, WB_NONE,  PC_NORMAL, 1'b1, MEM_WRITE};
             default:    ctrl = {IMM_I, SRC_RR, WB_NONE,  PC_NORMAL, 1'b0, MEM_READ};
         endcase
+    end
+
+    // Engine decode
+    always_comb begin
+        if (opcode == OP_OP)
+            case ({instr[25], funct3[2]})
+                2'b00, 2'b01: exec_engine = EXEC_ALU;
+                2'b10       : exec_engine = EXEC_MUL;
+                2'b11       : exec_engine = EXEC_DIV;
+            endcase
+        else
+            exec_engine = EXEC_ALU;
     end
 
     // Mem size is always funct3
@@ -80,6 +94,9 @@ module core_decoder (
             default:     alu_op = ALU_ADD;
         endcase
     end
+
+    // MUL op decode
+    assign mul_op = mul_op_e'(funct3[1:0]);
 
     // Branch type decode
     always_comb begin

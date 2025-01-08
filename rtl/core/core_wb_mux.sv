@@ -3,7 +3,7 @@ module core_wb_mux (
     input  logic [31:0]          pc_plus_4,
     // From EXEC stage
     input  core_pkg::wb_src_e    wb_src,
-    input  logic [31:0]          alu_result,
+    input  logic [31:0]          exec_result,
     // From MEM stage
     input  logic [31:0]          mem_rdata,
     // To Reg file
@@ -17,7 +17,7 @@ module core_wb_mux (
     always_comb begin
         case (wb_src)
             WB_FETCH: reg_d_value = pc_plus_4;
-            WB_EXEC:  reg_d_value = alu_result;
+            WB_EXEC:  reg_d_value = exec_result;
             WB_MEM:   reg_d_value = mem_rdata;
             default:  reg_d_value = 'x;
         endcase

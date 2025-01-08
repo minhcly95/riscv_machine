@@ -28,7 +28,7 @@ package core_pkg;
         SRC_RI,
         SRC_PI,
         SRC_ZI
-    } alu_src_e;
+    } exec_src_e;
 
     typedef enum logic [3:0] {
         ALU_ADD  = 4'b0_000,
@@ -42,6 +42,19 @@ package core_pkg;
         ALU_SRL  = 4'b0_101,
         ALU_SRA  = 4'b1_101
     } alu_op_e;
+
+    typedef enum logic [1:0] {
+        MUL_MUL    = 2'b00,
+        MUL_MULH   = 2'b01,
+        MUL_MULHSU = 2'b10,
+        MUL_MULHU  = 2'b11
+    } mul_op_e;
+
+    typedef enum logic [1:0] {
+        EXEC_ALU = 2'b00,
+        EXEC_MUL = 2'b10,
+        EXEC_DIV = 2'b11
+    } exec_engine_e;
 
     typedef enum logic [1:0] {
         WB_NONE,

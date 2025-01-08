@@ -22,31 +22,37 @@ module core_stage_exec (
     output core_pkg::mem_size_e  mem_size,
     // To Write-back mux
     output core_pkg::wb_src_e    wb_src,
-    output logic [31:0]          alu_result
+    output logic [31:0]          exec_result
 );
 
     import core_pkg::*;
 
     // Control signals
-    imm_type_e    imm_type;
-    alu_src_e     alu_src;
-    alu_op_e      alu_op;
-    pc_src_e      pc_src;
-    br_type_e     br_type;
-    logic         ecall;
+    imm_type_e     imm_type;
+    exec_src_e     exec_src;
+    alu_op_e       alu_op;
+    mul_op_e       mul_op;
+    exec_engine_e  exec_engine;
+    pc_src_e       pc_src;
+    br_type_e      br_type;
+    logic          ecall;
 
     // Immediate value
-    logic [31:0]  imm_val;
+    logic [31:0]   imm_val;
 
-    // ALU sources
-    logic [31:0]  src_a;
-    logic [31:0]  src_b;
+    // EXEC sources
+    logic [31:0]   src_a;
+    logic [31:0]   src_b;
+
+    // EXEC results
+    logic [31:0]   alu_result;
+    logic [31:0]   mul_result;
 
     // Branch target
-    logic [31:0]  br_target;
+    logic [31:0]   br_target;
 
     // To FETCH
-    logic         in_pc_new_valid;
+    logic          in_pc_new_valid;
 
     // ------------------ Controller ------------------
     // Hang when opcode is ECALL
@@ -56,8 +62,10 @@ module core_stage_exec (
     core_decoder u_decoder(
         .instr        (instr),
         .imm_type     (imm_type),
-        .alu_src      (alu_src),
+        .exec_src     (exec_src),
         .alu_op       (alu_op),
+        .mul_op       (mul_op),
+        .exec_engine  (exec_engine),
         .wb_src       (wb_src),
         .pc_src       (pc_src),
         .br_type      (br_type),
@@ -78,9 +86,9 @@ module core_stage_exec (
         .imm_val      (imm_val)
     );
 
-    // ----------------- ALU Source -------------------
-    core_alu_src_sel u_alu_src_sel(
-        .alu_src      (alu_src),
+    // ---------------- EXEC Source -------------------
+    core_exec_src_sel u_exec_src_sel(
+        .exec_src     (exec_src),
         .reg_a_value  (reg_a_value),
         .reg_b_value  (reg_b_value),
         .imm_val      (imm_val),
@@ -95,6 +103,22 @@ module core_stage_exec (
         .src_a        (src_a),
         .src_b        (src_b),
         .alu_result   (alu_result)
+    );
+
+    // -------------------- MUL -----------------------
+    core_mul u_mul(
+        .mul_op       (mul_op),
+        .src_a        (src_a),
+        .src_b        (src_b),
+        .mul_result   (mul_result)
+    );
+
+    // -----------------Engine select -----------------
+    core_exec_engine_sel u_core_exec_engine_sel(
+        .exec_engine  (exec_engine),
+        .alu_result   (alu_result),
+        .mul_result   (mul_result),
+        .exec_result  (exec_result)
     );
 
     // ---------------- Branch & Jump -----------------

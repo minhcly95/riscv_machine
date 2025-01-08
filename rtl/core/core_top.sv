@@ -51,7 +51,7 @@ module core_top #(
     // Write-back mux inputs
     wb_src_e      wb_src;
     logic [31:0]  pc_plus_4;
-    logic [31:0]  alu_result;
+    logic [31:0]  exec_result;
     logic [31:0]  mem_rdata;
 
     // I-mem interface
@@ -121,7 +121,7 @@ module core_top #(
         .mem_dir            (mem_dir),
         .mem_size           (mem_size),
         .wb_src             (wb_src),
-        .alu_result         (alu_result)
+        .exec_result        (exec_result)
     );
 
     // ------------------- MEM stage ------------------
@@ -185,7 +185,7 @@ module core_top #(
     core_wb_mux u_wb_mux(
         .pc_plus_4          (pc_plus_4),
         .wb_src             (wb_src),
-        .alu_result         (alu_result),
+        .exec_result        (exec_result),
         .mem_rdata          (mem_rdata),
         .reg_d_write        (reg_d_write),
         .reg_d_value        (reg_d_value)
