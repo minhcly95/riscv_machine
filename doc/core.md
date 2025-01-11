@@ -35,7 +35,7 @@ The `FETCH` stage outputs its PC to be written back to the Register File for the
 
 ### `EXEC` Stage
 The `EXEC` stage decodes the instructions using the [Decoder](#decoder), accesses the Register File to obtain the operand values,
-and executes the instructions using its ALU.
+and executes the instructions using one of its compute engine: `ALU`, `MUL` (multiplier), or `DIV` (divider).
 It accomplishes all of its tasks in only 1 cycle (ignore reality for now).
 
 If a command is neither `LOAD` nor `STORE`, the `EXEC` stage passes the control back to the `FETCH` stage to start a new command.
@@ -56,6 +56,12 @@ In case of a `LOAD`, the `RData` is written back to the Register File.
 
 The `MEM` stage also handles bit-extension for byte and half-word accesses.
 
+The `MEM` stage contains a reservation register for LR/SC commands.
+This register stores the most recent LR address,
+which is invalidated if the `MEM` stage encounters any store with the same address or an `SC` instruction.
+This register is exposed to the `EXEC` stage via a set/check/clear interface.
+The size of the reservation set is 4 bytes.
+
 Misaligned access is not allowed and will raise an exception.
 
 ### Register File
@@ -72,54 +78,44 @@ For narrow write transfer, write strobes should be used.
 ## Decoder
 The Decoder is a subcomponent of the `EXEC` stage. Its job is to decode the instruction fetched from the `FETCH` stage
 into the following conditions:
-- Immediate type: `I`, `S`, `B`, `U`, `J`.
-- ALU sources: `RR` (Reg + Reg), `RI` (Reg + Imm), `PI` (PC + Imm), `ZI` (Zero + Imm).
-- ALU operation: `ADD`, `SUB`, `SLT`, `SLTU`, `AND`, `OR`, `XOR`, `SLL`, `SRL`, `SRA`.
-- Write-back source: `NONE`, `ALU`, `PC4`, `MEM`.
+- Immediate type: `Z` (Zero), `I`, `S`, `B`, `U`, `J`.
+- EXEC sources: `RR` (Reg + Reg), `RI` (Reg + Imm), `MR` (Mem + Reg), `PI` (PC + Imm), `ZI` (Zero + Imm).
+- ALU operation: `ADD`, `SUB`, `SLT`, `SLTU`, `AND`, `OR`, `XOR`, `SLL`, `SRL`, `SRA`, `MIN`, `MAX`, `MINU`, `MAXU`,
+`OA` (output `rs1`), `OB` (output `rs2`).
+- MUL operation: `MUL`, `MULH`, `MULHSU`, `MULHU`.
+- DIV operation: `DIV`, `DIVU`, `REM`, `REMU`.
+- EXEC output: `ALU`, `MUL`, `DIV`, `RSV` (reservation).
+- Write-back source: `NONE`, `FETCH` (PC + 4), `EXEC`, `MEM`.
 - PC source: `NONE`, `JUMP`, `BR_Z` (branch on zero), `BR_NZ` (branch on non-zero).
+- Mem sources: `ALU_B` (addr from ALU, data from `rs2`), `LAST_ALU` (addr from last, data from ALU).
 - Mem operation: `NONE`, `READ`, `WRITE`.
 - Mem access size: `B`, `BU`, `H`, `HU`, `W`.
+- Reservation: `NONE`, `RSV_SET`, `RSV_CLEAR`.
 
 ### Decoding table
 
-| Op      | Imm type | ALU src | ALU op | WB src  | PC src  | Mem op  | Access size |
-|---------|----------|---------|--------|---------|---------|---------|-------------|
-| `ADD`   |          | `RR`    | `ADD`  | `ALU`   |         |         |             |
-| `SUB`   |          | `RR`    | `SUB`  | `ALU`   |         |         |             |
-| `SLT`   |          | `RR`    | `SLT`  | `ALU`   |         |         |             |
-| `SLTU`  |          | `RR`    | `SLTU` | `ALU`   |         |         |             |
-| `AND`   |          | `RR`    | `AND`  | `ALU`   |         |         |             |
-| `OR`    |          | `RR`    | `OR`   | `ALU`   |         |         |             |
-| `XOR`   |          | `RR`    | `XOR`  | `ALU`   |         |         |             |
-| `SLL`   |          | `RR`    | `SLL`  | `ALU`   |         |         |             |
-| `SRL`   |          | `RR`    | `SRL`  | `ALU`   |         |         |             |
-| `SRA`   |          | `RR`    | `SRA`  | `ALU`   |         |         |             |
-| `ADDI`  | `I`      | `RI`    | `ADD`  | `ALU`   |         |         |             |
-| `SLTI`  | `I`      | `RI`    | `SLT`  | `ALU`   |         |         |             |
-| `SLTIU` | `I`      | `RI`    | `SLTU` | `ALU`   |         |         |             |
-| `ANDI`  | `I`      | `RI`    | `AND`  | `ALU`   |         |         |             |
-| `ORI`   | `I`      | `RI`    | `OR`   | `ALU`   |         |         |             |
-| `XORI`  | `I`      | `RI`    | `XOR`  | `ALU`   |         |         |             |
-| `SLLI`  | `I`      | `RI`    | `SLL`  | `ALU`   |         |         |             |
-| `SRLI`  | `I`      | `RI`    | `SRL`  | `ALU`   |         |         |             |
-| `SRAI`  | `I`      | `RI`    | `SRA`  | `ALU`   |         |         |             |
-| `LUI`   | `U`      | `ZI`    | `ADD`  | `ALU`   |         |         |             |
-| `AUIPC` | `U`      | `PI`    | `ADD`  | `ALU`   |         |         |             |
-| `JAL`   | `J`      | `PI`    | `ADD`  | `PC4`   | `JUMP`  |         |             |
-| `JALR`  | `I`      | `RI`    | `ADD`  | `PC4`   | `JUMP`  |         |             |
-| `BEQ`   | `B`      | `RR`    | `SUB`  |         | `BR_Z`  |         |             |
-| `BNE`   | `B`      | `RR`    | `SUB`  |         | `BR_NZ` |         |             |
-| `BLT`   | `B`      | `RR`    | `SLT`  |         | `BR_NZ` |         |             |
-| `BGE`   | `B`      | `RR`    | `SLT`  |         | `BR_Z`  |         |             |
-| `BLTU`  | `B`      | `RR`    | `SLTU` |         | `BR_NZ` |         |             |
-| `BGEU`  | `B`      | `RR`    | `SLTU` |         | `BR_Z`  |         |             |
-| `LB`    | `I`      | `RI`    | `ADD`  | `MEM`   |         | `READ`  | `B`         |
-| `LH`    | `I`      | `RI`    | `ADD`  | `MEM`   |         | `READ`  | `H`         |
-| `LW`    | `I`      | `RI`    | `ADD`  | `MEM`   |         | `READ`  | `W`         |
-| `LBU`   | `I`      | `RI`    | `ADD`  | `MEM`   |         | `READ`  | `BU`        |
-| `LHU`   | `I`      | `RI`    | `ADD`  | `MEM`   |         | `READ`  | `HU`        |
-| `SB`    | `S`      | `RI`    | `ADD`  |         |         | `WRITE` | `B`         |
-| `SH`    | `S`      | `RI`    | `ADD`  |         |         | `WRITE` | `H`         |
-| `SW`    | `S`      | `RI`    | `ADD`  |         |         | `WRITE` | `W`         |
+| Op       | Imm type | ALU src | Engine op                   | WB src  | PC src  | Mem op                              | Mem src - size     |
+|----------|----------|---------|-----------------------------|---------|---------|-------------------------------------|--------------------|
+| `OP`     |          | `RR`    | `{funct7[5], funct3}`       | `ALU`   |         |                                     |                    |
+| `OP-IMM` | `I`      | `RI`    | `funct3` (except for `SRA`) | `ALU`   |         |                                     |                    |
+| `LUI`    | `U`      | `ZI`    | `ADD`                       | `ALU`   |         |                                     |                    |
+| `AUIPC`  | `U`      | `PI`    | `ADD`                       | `ALU`   |         |                                     |                    |
+| `JAL`    | `J`      | `PI`    | `ADD`                       | `FETCH` | `JUMP`  |                                     |                    |
+| `JALR`   | `I`      | `RI`    | `ADD`                       | `FETCH` | `JUMP`  |                                     |                    |
+| `BEQ`    | `B`      | `RR`    | `SUB`                       |         | `BR_Z`  |                                     |                    |
+| `BNE`    | `B`      | `RR`    | `SUB`                       |         | `BR_NZ` |                                     |                    |
+| `BLT`    | `B`      | `RR`    | `SLT`                       |         | `BR_NZ` |                                     |                    |
+| `BGE`    | `B`      | `RR`    | `SLT`                       |         | `BR_Z`  |                                     |                    |
+| `BLTU`   | `B`      | `RR`    | `SLTU`                      |         | `BR_NZ` |                                     |                    |
+| `BGEU`   | `B`      | `RR`    | `SLTU`                      |         | `BR_Z`  |                                     |                    |
+| `LOAD`   | `I`      | `RI`    | `ADD`                       | `MEM`   |         | `READ`                              | `ALU_B` - `funct3` |
+| `STORE`  | `S`      | `RI`    | `ADD`                       |         |         | `WRITE`                             | `ALU_B` - `funct3` |
+| `MUL`    |          | `RR`    | `funct3[1:0]`               | `MUL`   |         |                                     |                    |
+| `DIV`    |          | `RR`    | `funct3[1:0]`               | `DIV`   |         |                                     |                    |
+| `LR`     | `Z`      | `RI`    | `ADD`                       | `MEM`   |         | `READ` - `RSV_SET`                  | `ALU_B` - `W`      |
+| `SC`     | `Z`      | `RI`    | `ADD`                       | `RSV`   |         | `WRITE` if rsv. valid - `RSV_CLEAR` | `ALU_B` - `W`      |
+| `AMO-0`  | `Z`      | `RI`    | `ADD`                       | `MEM`   |         | `READ`                              | `ALU_B` - `W`      |
+| `AMO-1`  |          | `MR`    | Decode from `funct5`        | `MEM`   |         | `WRITE`                             | `LAST_ALU` - `W`   |
 
 Empty entries are either `NONE` or N/A (e.g. immediate type is not relevant to R-type operations).
+`AMO` instructions has two `EXEC` and `MEM` phases, hence `AMO-0` and `AMO-1`.
