@@ -5,6 +5,8 @@ ${PROJ_DIR}/rtl/core/exec/core_exec_src_sel.sv
 ${PROJ_DIR}/rtl/core/exec/core_exec_engine_sel.sv
 ${PROJ_DIR}/rtl/core/exec/core_alu.sv
 ${PROJ_DIR}/rtl/core/exec/core_mul.sv
+${PROJ_DIR}/rtl/core/exec/core_div_stage.sv
+${PROJ_DIR}/rtl/core/exec/core_div.sv
 ${PROJ_DIR}/rtl/core/exec/core_pc_new_sel.sv
 ${PROJ_DIR}/rtl/core/core_controller.sv
 ${PROJ_DIR}/rtl/core/core_stage_fetch.sv

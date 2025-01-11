@@ -4,6 +4,7 @@ module core_exec_engine_sel (
     // Inputs
     input  logic [31:0]             alu_result,
     input  logic [31:0]             mul_result,
+    input  logic [31:0]             div_result,
     // Outputs
     output logic [31:0]             exec_result
 );
@@ -14,6 +15,7 @@ module core_exec_engine_sel (
         case (exec_engine)
             EXEC_ALU: exec_result = alu_result;
             EXEC_MUL: exec_result = mul_result;
+            EXEC_DIV: exec_result = div_result;
             default:  exec_result = 'x;
         endcase
     end

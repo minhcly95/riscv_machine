@@ -2,4 +2,5 @@
 /build/
 /tb/results.xml
 /tb/dump.fst
+/tb/*.gtkw
 __pycache__/

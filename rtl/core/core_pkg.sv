@@ -51,6 +51,13 @@ package core_pkg;
     } mul_op_e;
 
     typedef enum logic [1:0] {
+        DIV_DIV  = 2'b00,
+        DIV_DIVU = 2'b01,
+        DIV_REM  = 2'b10,
+        DIV_REMU = 2'b11
+    } div_op_e;
+
+    typedef enum logic [1:0] {
         EXEC_ALU = 2'b00,
         EXEC_MUL = 2'b10,
         EXEC_DIV = 2'b11

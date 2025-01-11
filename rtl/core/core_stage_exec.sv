@@ -32,6 +32,7 @@ module core_stage_exec (
     exec_src_e     exec_src;
     alu_op_e       alu_op;
     mul_op_e       mul_op;
+    div_op_e       div_op;
     exec_engine_e  exec_engine;
     pc_src_e       pc_src;
     br_type_e      br_type;
@@ -47,6 +48,7 @@ module core_stage_exec (
     // EXEC results
     logic [31:0]   alu_result;
     logic [31:0]   mul_result;
+    logic [31:0]   div_result;
 
     // Branch target
     logic [31:0]   br_target;
@@ -65,6 +67,7 @@ module core_stage_exec (
         .exec_src     (exec_src),
         .alu_op       (alu_op),
         .mul_op       (mul_op),
+        .div_op       (div_op),
         .exec_engine  (exec_engine),
         .wb_src       (wb_src),
         .pc_src       (pc_src),
@@ -113,11 +116,20 @@ module core_stage_exec (
         .mul_result   (mul_result)
     );
 
+    // -------------------- DIV -----------------------
+    core_div u_div(
+        .div_op       (div_op),
+        .src_a        (src_a),
+        .src_b        (src_b),
+        .div_result   (div_result)
+    );
+
     // -----------------Engine select -----------------
     core_exec_engine_sel u_core_exec_engine_sel(
         .exec_engine  (exec_engine),
         .alu_result   (alu_result),
         .mul_result   (mul_result),
+        .div_result   (div_result),
         .exec_result  (exec_result)
     );
 

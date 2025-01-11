@@ -6,6 +6,7 @@ module core_decoder (
     output core_pkg::exec_src_e     exec_src,
     output core_pkg::alu_op_e       alu_op,
     output core_pkg::mul_op_e       mul_op,
+    output core_pkg::div_op_e       div_op,
     output core_pkg::exec_engine_e  exec_engine,
     output core_pkg::wb_src_e       wb_src,
     output core_pkg::pc_src_e       pc_src,
@@ -97,6 +98,9 @@ module core_decoder (
 
     // MUL op decode
     assign mul_op = mul_op_e'(funct3[1:0]);
+
+    // DIV op decode
+    assign div_op = div_op_e'(funct3[1:0]);
 
     // Branch type decode
     always_comb begin
