@@ -1,7 +1,6 @@
 import os, cocotb
 import utils
 from sequences import reset_sequence
-from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, RisingEdge, First
 
 
@@ -11,12 +10,11 @@ BASE_RES = 0x1000
 
 
 @cocotb.test()
-async def test_fibonacci(dut):
-    # Start a clock
-    cocotb.start_soon(Clock(dut.clk, 1, "ns").start())
+async def test_fibonacci(tb):
+    dut = tb.u_top
 
     # Start the reset sequence
-    cocotb.start_soon(reset_sequence(dut))
+    cocotb.start_soon(reset_sequence(tb))
 
     # Backdoor some instructions
     utils.load_bin_to_ram(dut, f"{PROJ_DIR}/build/asm/fibonacci.bin")
