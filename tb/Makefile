@@ -7,7 +7,7 @@ VERILOG_SOURCES += $(shell echo $(shell cat $(LIST_FILE)))
 
 TOPLEVEL = top
 
-MODULE = test_fibonacci,test_isa
+MODULE = test_fibonacci,test_isa,test_seq_mul,test_seq_div
 
 EXTRA_ARGS += --trace --trace-fst --trace-structs
 

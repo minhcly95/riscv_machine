@@ -2,10 +2,12 @@ import os, cocotb
 import utils
 from sequences import reset_sequence
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import ClockCycles, RisingEdge, First
 
 
 PROJ_DIR = utils.get_proj_dir()
+MAX_CLK  = 1000
+BASE_RES = 0x1000
 
 
 @cocotb.test()
@@ -19,15 +21,16 @@ async def test_fibonacci(dut):
     # Backdoor some instructions
     utils.load_bin_to_ram(dut, f"{PROJ_DIR}/build/asm/fibonacci.bin")
 
-    # Wait for 1000 cycles
-    await ClockCycles(dut.clk, 1000)
+    # Wait for ecall or max cycles
+    ecall   = RisingEdge(dut.u_core.u_stage_exec.ecall)
+    max_clk = ClockCycles(dut.clk, MAX_CLK)
+    await First(ecall, max_clk)
 
     # Check the final result is RAM (starting at 0x1000)
-    start_word = 0x1000 // 4;
     with open(f"{PROJ_DIR}/asm/fibonacci.ref", "r") as file:
         for i, line in enumerate(file):
             # Convert to int
             number = int(line)
             # Compare with the value in RAM
-            assert dut.u_ram.mem_array[start_word + i].value == number
+            assert utils.ram(dut, BASE_RES + (i << 2)).value == number
 

@@ -3,6 +3,10 @@ import os, struct
 def get_proj_dir():
     return os.environ["PROJ_DIR"]
 
+# Get the word in RAM at byte-address
+def ram(dut, addr):
+    return dut.u_ram.mem_array[addr >> 2]
+
 # Load a binary file into the RAM of the machine
 def load_bin_to_ram(dut, filename):
     i = 0
@@ -15,7 +19,7 @@ def load_bin_to_ram(dut, filename):
             # Convert to an integer
             word = struct.unpack('<i', data)[0]  # <i means little-endian
             # Backdoor the value
-            dut.u_ram.mem_array[i].value = word
+            ram(dut, i << 2).value = word
             i += 1
 
     dut.u_ram._log.info(f"Loaded {i} instructions into the RAM")
