@@ -6,7 +6,7 @@ from cocotb.triggers import ClockCycles, RisingEdge, First
 
 
 PROJ_DIR = utils.get_proj_dir()
-MAX_CLK  = 10000
+MAX_CLK  = 100000
 
 
 async def test_isa(dut, test_name):

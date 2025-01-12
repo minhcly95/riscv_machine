@@ -1,62 +1,90 @@
 module core_controller (
-    input  logic  clk,
-    input  logic  rst_n,
+    input  logic                  clk,
+    input  logic                  rst_n,
     // To FETCH stage
-    output logic  fetch_stage_valid,
-    input  logic  fetch_stage_ready,
+    output logic                  fetch_stage_valid,
+    input  logic                  fetch_stage_ready,
     // To EXEC stage
-    output logic  exec_stage_valid,
-    input  logic  exec_stage_ready,
-    input  logic  mem_op,
+    output logic                  exec_stage_valid,
+    input  logic                  exec_stage_ready,
+    output logic                  exec_phase,
+    input  core_pkg::ctrl_path_e  ctrl_path,
     // To MEM stage
-    output logic  mem_stage_valid,
-    input  logic  mem_stage_ready,
+    output logic                  mem_stage_valid,
+    input  logic                  mem_stage_ready,
     // To Write-back mux
-    output logic  reg_d_en
+    output logic                  reg_d_en
 );
 
+    import core_pkg::*;
+
     // State definition
-    typedef enum logic [1:0] {
+    typedef enum logic [2:0] {
         IDLE,
         FETCH,
-        EXEC,
-        MEM
+        EXEC_0,
+        MEM_0,
+        EXEC_1,
+        MEM_1
     } state_e;
 
-    // State machine
     state_e curr_state;
     state_e next_state;
 
+    logic   is_mem_op;
+    logic   two_phase;
+
+    // State machine
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n) curr_state <= IDLE;
         else        curr_state <= next_state;
     end
 
     // Transition
-    // If mem_op:  FETCH -> EXEC -> MEM -> FETCH
-    // If ~mem_op: FETCH -> EXEC -> FETCH
     always_comb begin
         case (curr_state)
             IDLE:    next_state = FETCH;
-            FETCH:   next_state = fetch_stage_ready ? EXEC : FETCH;
-            EXEC:    next_state = exec_stage_ready  ? (mem_op ? MEM : FETCH) : EXEC;
-            MEM:     next_state = mem_stage_ready   ? FETCH : MEM;
+            FETCH:   next_state = fetch_stage_ready ? EXEC_0 : FETCH;
+            EXEC_0:  next_state = exec_stage_ready  ? (is_mem_op ? MEM_0  : FETCH) : EXEC_0;
+            MEM_0:   next_state = mem_stage_ready   ? (two_phase ? EXEC_1 : FETCH) : MEM_0;
+            EXEC_1:  next_state = exec_stage_ready  ? MEM_1  : EXEC_1;
+            MEM_1:   next_state = mem_stage_ready   ? FETCH  : MEM_1;
+            default: next_state = IDLE;
+        endcase
+    end
+
+    // Control path decode
+    always_comb begin
+        case (ctrl_path)
+            CTRL_MEM: begin
+                is_mem_op = 1'b1;
+                two_phase = 1'b0;
+            end
+            CTRL_AMO: begin
+                is_mem_op = 1'b1;
+                two_phase = 1'b1;
+            end
+            default: begin
+                is_mem_op = 1'b0;
+                two_phase = 1'b0;
+            end
         endcase
     end
 
     // Output
     assign fetch_stage_valid = (curr_state == FETCH);
-    assign exec_stage_valid  = (curr_state == EXEC);
-    assign mem_stage_valid   = (curr_state == MEM);
+    assign exec_stage_valid  = (curr_state == EXEC_0) | (curr_state == EXEC_1);
+    assign mem_stage_valid   = (curr_state == MEM_0)  | (curr_state == MEM_1);
+    assign exec_phase        = (curr_state == EXEC_1) | (curr_state == MEM_1);
 
     // Write register when
-    // If mem_op:  end of MEM stage
-    // If ~mem_op: end of EXEC stage
+    // If CTRL_MEM or CTRL_AMO: end of MEM_0 stage
+    // If CTRL_EXEC: end of EXEC_0 stage
     always_comb begin
-        if (mem_op)
-            reg_d_en = mem_stage_valid & mem_stage_ready;
+        if (is_mem_op)
+            reg_d_en = (curr_state == MEM_0)  & mem_stage_ready;
         else
-            reg_d_en = exec_stage_valid & exec_stage_ready;
+            reg_d_en = (curr_state == EXEC_0) & exec_stage_ready;
     end
 
 endmodule

@@ -6,6 +6,7 @@ module core_exec_src_sel (
     input  logic [31:0]          reg_b_value,
     input  logic [31:0]          imm_val,
     input  logic [31:0]          pc,
+    input  logic [31:0]          mem_last_rdata,
     // Outputs
     output logic [31:0]          src_a,
     output logic [31:0]          src_b
@@ -30,6 +31,14 @@ module core_exec_src_sel (
             SRC_ZI: begin
                 src_a = 32'b0;
                 src_b = imm_val;
+            end
+            SRC_MR: begin
+                src_a = mem_last_rdata;
+                src_b = reg_b_value;
+            end
+            default: begin
+                src_a = 'x;
+                src_b = 'x;
             end
         endcase
     end

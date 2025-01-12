@@ -1,7 +1,10 @@
 module core_decoder (
     // Instruction
     input  logic [31:0]             instr,
+    // EXEC phase
+    input  logic                    exec_phase,
     // Control signals
+    output core_pkg::ctrl_path_e    ctrl_path,
     output core_pkg::imm_type_e     imm_type,
     output core_pkg::exec_src_e     exec_src,
     output core_pkg::alu_op_e       alu_op,
@@ -11,51 +14,72 @@ module core_decoder (
     output core_pkg::wb_src_e       wb_src,
     output core_pkg::pc_src_e       pc_src,
     output core_pkg::br_type_e      br_type,
-    output logic                    mem_op,
+    output core_pkg::mem_src_e      mem_src,
     output core_pkg::mem_dir_e      mem_dir,
     output core_pkg::mem_size_e     mem_size,
-    output logic                    ecall
+    output core_pkg::mem_rsv_e      mem_rsv,
+    output logic                    ecall,
+    output logic                    sc
 );
 
     import core_pkg::*;
 
     localparam CTRL_W =
+        $bits(ctrl_path_e) +
         $bits(imm_type_e) +
         $bits(exec_src_e) +
         $bits(wb_src_e)   +
         $bits(pc_src_e)   +
-        1                 +     // For mem_op
         $bits(mem_dir_e);
 
     opcode_e    opcode;
     logic [2:0] funct3;
+    amo_op_e    amo_op;
 
     logic       is_shift_op;
-    logic [3:0] dec_alu_op;
-    logic [3:0] dec_alu_opimm;
+    alu_op_e    dec_alu_op;
+    alu_op_e    dec_alu_opimm;
 
     logic [CTRL_W-1:0] ctrl;
 
     // Decompose into components
     assign opcode = opcode_e'(instr[6:0]);
     assign funct3 = instr[14:12];
+    assign amo_op = amo_op_e'(instr[31:27]);
 
     // Aggregate all the controls
-    assign {imm_type, exec_src, wb_src, pc_src, mem_op, mem_dir} = ctrl;
+    assign {ctrl_path, imm_type, exec_src, wb_src, pc_src, mem_dir} = ctrl;
 
     // Main decode table
     always_comb begin
         case (opcode)
-            OP_OP:      ctrl = {IMM_I, SRC_RR, WB_EXEC,  PC_NORMAL, 1'b0, MEM_READ};
-            OP_OPIMM:   ctrl = {IMM_I, SRC_RI, WB_EXEC,  PC_NORMAL, 1'b0, MEM_READ};
-            OP_LUI:     ctrl = {IMM_U, SRC_ZI, WB_EXEC,  PC_NORMAL, 1'b0, MEM_READ};
-            OP_AUIPC:   ctrl = {IMM_U, SRC_PI, WB_EXEC,  PC_NORMAL, 1'b0, MEM_READ};
-            OP_JAL:     ctrl = {IMM_J, SRC_PI, WB_FETCH, PC_JUMP,   1'b0, MEM_READ};  
-            OP_JALR:    ctrl = {IMM_I, SRC_RI, WB_FETCH, PC_JUMP,   1'b0, MEM_READ};
-            OP_BRANCH:  ctrl = {IMM_B, SRC_RR, WB_NONE,  PC_BRANCH, 1'b0, MEM_READ}; 
-            OP_LOAD:    ctrl = {IMM_I, SRC_RI, WB_MEM,   PC_NORMAL, 1'b1, MEM_READ};
-            OP_STORE:   ctrl = {IMM_S, SRC_RI, WB_NONE,  PC_NORMAL, 1'b1, MEM_WRITE};
-            default:    ctrl = {IMM_I, SRC_RR, WB_NONE,  PC_NORMAL, 1'b0, MEM_READ};
+            OP_OP:        ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_EXEC,  PC_NORMAL, MEM_READ};
+            OP_OPIMM:     ctrl = {CTRL_EXEC, IMM_I, SRC_RI, WB_EXEC,  PC_NORMAL, MEM_READ};
+            OP_LUI:       ctrl = {CTRL_EXEC, IMM_U, SRC_ZI, WB_EXEC,  PC_NORMAL, MEM_READ};
+            OP_AUIPC:     ctrl = {CTRL_EXEC, IMM_U, SRC_PI, WB_EXEC,  PC_NORMAL, MEM_READ};
+            OP_JAL:       ctrl = {CTRL_EXEC, IMM_J, SRC_PI, WB_FETCH, PC_JUMP,   MEM_READ};
+            OP_JALR:      ctrl = {CTRL_EXEC, IMM_I, SRC_RI, WB_FETCH, PC_JUMP,   MEM_READ};
+            OP_BRANCH:    ctrl = {CTRL_EXEC, IMM_B, SRC_RR, WB_NONE,  PC_BRANCH, MEM_READ};
+            OP_LOAD:      ctrl = {CTRL_MEM,  IMM_I, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ};
+            OP_STORE:     ctrl = {CTRL_MEM,  IMM_S, SRC_RI, WB_NONE,  PC_NORMAL, MEM_WRITE};
+            OP_AMO: case (amo_op)
+                AMO_LR:   ctrl = {CTRL_MEM,  IMM_Z, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ};
+                AMO_SC:   ctrl = {CTRL_MEM,  IMM_Z, SRC_RI, WB_EXEC,  PC_NORMAL, MEM_WRITE};
+                AMO_SWAP,
+                AMO_ADD,
+                AMO_XOR,
+                AMO_OR,
+                AMO_AND,
+                AMO_MIN,
+                AMO_MAX,
+                AMO_MINU,
+                AMO_MAXU: case (exec_phase)
+                    1'b0: ctrl = {CTRL_AMO,  IMM_Z, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ};
+                    1'b1: ctrl = {CTRL_AMO,  IMM_Z, SRC_MR, WB_NONE,  PC_NORMAL, MEM_WRITE};
+                endcase
+                default:  ctrl = {CTRL_EXEC, IMM_Z, SRC_RI, WB_NONE,  PC_NORMAL, MEM_READ};
+            endcase
+            default:      ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_NONE,  PC_NORMAL, MEM_READ};
         endcase
     end
 
@@ -67,22 +91,27 @@ module core_decoder (
                 2'b10       : exec_engine = EXEC_MUL;
                 2'b11       : exec_engine = EXEC_DIV;
             endcase
+        else if ((opcode == OP_AMO) & (amo_op == AMO_SC))
+            exec_engine = EXEC_RSV;
         else
             exec_engine = EXEC_ALU;
     end
 
-    // Mem size is always funct3
+    // Mem source decode (only switch source on second phase)
+    assign mem_src = exec_phase ? MEMSRC_LAST_ALU : MEMSRC_ALU_B;
+
+    // Mem size decode
     assign mem_size = mem_size_e'(funct3);
 
     // ALU op decode
     assign is_shift_op   = (funct3[1:0] == 2'b01);
-    assign dec_alu_op    = {instr[30], funct3};
-    assign dec_alu_opimm = {1'b0, funct3};
+    assign dec_alu_op    = alu_op_e'({1'b0, instr[30], funct3});
+    assign dec_alu_opimm = alu_op_e'({2'b0, funct3});
 
     always_comb begin
         case (opcode)
-            OP_OP:       alu_op = alu_op_e'(dec_alu_op);
-            OP_OPIMM:    alu_op = alu_op_e'(is_shift_op ? dec_alu_op : dec_alu_opimm);
+            OP_OP:       alu_op = dec_alu_op;
+            OP_OPIMM:    alu_op = is_shift_op ? dec_alu_op : dec_alu_opimm;
             OP_BRANCH: case (funct3)
                 BEQ:     alu_op = ALU_SUB;
                 BNE:     alu_op = ALU_SUB;
@@ -91,6 +120,18 @@ module core_decoder (
                 BLTU:    alu_op = ALU_SLTU;
                 BGEU:    alu_op = ALU_SLTU;
                 default: alu_op = ALU_SUB;
+            endcase
+            OP_AMO: case ({exec_phase, amo_op})
+                {1'b1, AMO_SWAP}: alu_op = ALU_OB;
+                {1'b1, AMO_ADD}:  alu_op = ALU_ADD;
+                {1'b1, AMO_XOR}:  alu_op = ALU_XOR;
+                {1'b1, AMO_OR}:   alu_op = ALU_OR;
+                {1'b1, AMO_AND}:  alu_op = ALU_AND;
+                {1'b1, AMO_MIN}:  alu_op = ALU_MIN;
+                {1'b1, AMO_MAX}:  alu_op = ALU_MAX;
+                {1'b1, AMO_MINU}: alu_op = ALU_MINU;
+                {1'b1, AMO_MAXU}: alu_op = ALU_MAXU;
+                default: alu_op = ALU_ADD;
             endcase
             default:     alu_op = ALU_ADD;
         endcase
@@ -117,5 +158,20 @@ module core_decoder (
 
     // ECALL command
     assign ecall = (opcode == OP_SYSTEM) & (instr[31:7] == 0);
+
+    // SC command
+    assign sc = (opcode == OP_AMO) & (amo_op == AMO_SC);
+
+    // Reservation decode
+    always_comb begin
+        if (opcode == OP_AMO)
+            case (amo_op)
+                AMO_LR:  mem_rsv = RSV_SET;
+                AMO_SC:  mem_rsv = RSV_CLEAR;
+                default: mem_rsv = RSV_NONE;
+            endcase
+        else
+            mem_rsv = RSV_NONE;
+    end
 
 endmodule

@@ -24,6 +24,10 @@ This condition is conveyed by the `EXEC` stage during its turn.
 
 The Controller also controls when the Register File is written.
 
+As an exception, `AMO` instructions needs two `EXEC` and `MEM` phases.
+In such case, the Controller walks through the states: `FETCH`, `EXEC-0`, `MEM-0`, `EXEC-1`, `MEM-1`.
+The phase information is also passes to the `EXEC` stage.
+
 ### `FETCH` Stage
 The `FETCH` stage holds the Program Counter (PC).
 At its turn, it sends a request to the Memory Interface to fetch a new instruction.
@@ -46,6 +50,8 @@ The `EXEC` stage may write a new PC to the `FETCH` stage in case of the `JUMP` a
 The `EXEC` stage is also in charge of selecting the input of the Write-back Mux.
 However, when to update the Register File is decided by the Controller.
 
+The `EXEC` needs to store the last `MEM` address, so it can be reused in phase 2 of the `AMO` instructions.
+
 ### `MEM` Stage
 The `MEM` stage sends a request to the Memory Interface to complete memory operations.
 The `MEM` stage is not always executed, only during `LOAD` and `STORE` operations.
@@ -61,6 +67,8 @@ This register stores the most recent LR address,
 which is invalidated if the `MEM` stage encounters any store with the same address or an `SC` instruction.
 This register is exposed to the `EXEC` stage via a set/check/clear interface.
 The size of the reservation set is 4 bytes.
+
+The `MEM` needs to store the last read data, so it can be reused in phase 2 of the `AMO` instructions.
 
 Misaligned access is not allowed and will raise an exception.
 
@@ -115,7 +123,7 @@ into the following conditions:
 | `LR`     | `Z`      | `RI`    | `ADD`                       | `MEM`   |         | `READ` - `RSV_SET`                  | `ALU_B` - `W`      |
 | `SC`     | `Z`      | `RI`    | `ADD`                       | `RSV`   |         | `WRITE` if rsv. valid - `RSV_CLEAR` | `ALU_B` - `W`      |
 | `AMO-0`  | `Z`      | `RI`    | `ADD`                       | `MEM`   |         | `READ`                              | `ALU_B` - `W`      |
-| `AMO-1`  |          | `MR`    | Decode from `funct5`        | `MEM`   |         | `WRITE`                             | `LAST_ALU` - `W`   |
+| `AMO-1`  |          | `MR`    | Decode from `funct5`        |         |         | `WRITE`                             | `LAST_ALU` - `W`   |
 
 Empty entries are either `NONE` or N/A (e.g. immediate type is not relevant to R-type operations).
 `AMO` instructions has two `EXEC` and `MEM` phases, hence `AMO-0` and `AMO-1`.

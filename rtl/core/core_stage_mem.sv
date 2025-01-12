@@ -1,14 +1,19 @@
 // Misaligned access is not allowed
 // D-mem requests must be 4B-aligned
 module core_stage_mem (
+    input  logic                 clk,
+    input  logic                 rst_n,
     // From Controller
     input  logic                 mem_stage_valid,
     output logic                 mem_stage_ready,
-    // From EXEC stage
+    // From/to EXEC stage
     input  logic [31:0]          mem_addr,
     input  logic [31:0]          mem_wdata,
     input  core_pkg::mem_dir_e   mem_dir,
     input  core_pkg::mem_size_e  mem_size,
+    input  core_pkg::mem_rsv_e   mem_rsv,
+    output logic                 mem_rsv_valid,
+    output logic [31:0]          mem_last_rdata,
     // To Write-back mux
     output logic [31:0]          mem_rdata,
     // Memory interface
@@ -22,6 +27,10 @@ module core_stage_mem (
 );
 
     import core_pkg::*;
+
+    logic         rsv_addr_valid;
+    logic [29:0]  rsv_addr;
+    logic         rsv_addr_matched;
 
     // Handshake
     assign dmem_valid      = mem_stage_valid;
@@ -103,5 +112,43 @@ module core_stage_mem (
             default: mem_rdata = 'x;    // Should not happen
         endcase
     end
+
+    // Reservation register
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (~rst_n) rsv_addr_valid <= 1'b0;
+        else if (mem_stage_valid & mem_stage_ready) begin
+            case (mem_rsv)
+                // LR: set reservation to load addr
+                RSV_SET: begin
+                    rsv_addr_valid <= 1'b1;
+                    rsv_addr       <= mem_addr[31:2];
+                end
+                // SC: clear reservation regardless
+                RSV_CLEAR: begin
+                    rsv_addr_valid <= 1'b0;
+                end
+                // Check for store to invalidate
+                default: begin
+                    if ((mem_dir == MEM_WRITE) & rsv_addr_matched)
+                        rsv_addr_valid <= 1'b0;
+                end
+            endcase
+        end
+    end
+
+    assign rsv_addr_matched = (rsv_addr == mem_addr[31:2]);
+
+    // Reservation check
+    assign mem_rsv_valid = rsv_addr_valid & rsv_addr_matched;
+
+    // Last read data
+    flope #(
+        .WIDTH  (32)
+    ) u_last_rdata(
+        .clk    (clk),
+        .en     (mem_stage_valid & mem_stage_ready),
+        .d      (mem_rdata),
+        .q      (mem_last_rdata)
+    );
 
 endmodule

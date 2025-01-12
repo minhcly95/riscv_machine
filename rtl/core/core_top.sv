@@ -22,7 +22,8 @@ module core_top #(
     logic         fetch_stage_ready;
     logic         exec_stage_valid;
     logic         exec_stage_ready;
-    logic         mem_op;
+    logic         exec_phase;
+    ctrl_path_e   ctrl_path;
     logic         mem_stage_valid;
     logic         mem_stage_ready;
 
@@ -37,6 +38,9 @@ module core_top #(
     logic [31:0]  mem_wdata;
     mem_dir_e     mem_dir;
     mem_size_e    mem_size;
+    mem_rsv_e     mem_rsv;
+    logic         mem_rsv_valid;
+    logic [31:0]  mem_last_rdata;
 
     // Reg file interface
     logic  [4:0]  reg_a_id;
@@ -77,7 +81,8 @@ module core_top #(
         .fetch_stage_ready  (fetch_stage_ready),
         .exec_stage_valid   (exec_stage_valid),
         .exec_stage_ready   (exec_stage_ready),
-        .mem_op             (mem_op),
+        .exec_phase         (exec_phase),
+        .ctrl_path          (ctrl_path),
         .mem_stage_valid    (mem_stage_valid),
         .mem_stage_ready    (mem_stage_ready),
         .reg_d_en           (reg_d_en)
@@ -104,9 +109,11 @@ module core_top #(
 
     // ------------------ EXEC stage ------------------
     core_stage_exec u_stage_exec(
+        .clk                (clk),
         .exec_stage_valid   (exec_stage_valid),
         .exec_stage_ready   (exec_stage_ready),
-        .mem_op             (mem_op),
+        .exec_phase         (exec_phase),
+        .ctrl_path          (ctrl_path),
         .reg_a_id           (reg_a_id),
         .reg_a_value        (reg_a_value),
         .reg_b_id           (reg_b_id),
@@ -120,18 +127,26 @@ module core_top #(
         .mem_wdata          (mem_wdata),
         .mem_dir            (mem_dir),
         .mem_size           (mem_size),
+        .mem_rsv            (mem_rsv),
+        .mem_rsv_valid      (mem_rsv_valid),
+        .mem_last_rdata     (mem_last_rdata),
         .wb_src             (wb_src),
         .exec_result        (exec_result)
     );
 
     // ------------------- MEM stage ------------------
     core_stage_mem u_stage_mem(
+        .clk                (clk),
+        .rst_n              (rst_n),
         .mem_stage_valid    (mem_stage_valid),
         .mem_stage_ready    (mem_stage_ready),
         .mem_addr           (mem_addr),
         .mem_wdata          (mem_wdata),
         .mem_dir            (mem_dir),
         .mem_size           (mem_size),
+        .mem_rsv            (mem_rsv),
+        .mem_rsv_valid      (mem_rsv_valid),
+        .mem_last_rdata     (mem_last_rdata),
         .mem_rdata          (mem_rdata),
         .dmem_valid         (dmem_valid),
         .dmem_ready         (dmem_ready),

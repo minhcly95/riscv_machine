@@ -11,6 +11,7 @@ module core_imm_parser (
 
     always_comb begin
         case (imm_type)
+            IMM_Z:   imm_val = 32'b0;
             IMM_I:   imm_val = {{21{instr[31]}}, instr[30:20]};
             IMM_S:   imm_val = {{21{instr[31]}}, instr[30:25], instr[11:7]};
             IMM_B:   imm_val = {{20{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0};

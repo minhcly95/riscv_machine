@@ -1,33 +1,39 @@
 module core_stage_exec (
+    input  logic                  clk,
     // From Controller
-    input  logic                 exec_stage_valid,
-    output logic                 exec_stage_ready,
-    output logic                 mem_op,
+    input  logic                  exec_stage_valid,
+    output logic                  exec_stage_ready,
+    input  logic                  exec_phase,
+    output core_pkg::ctrl_path_e  ctrl_path,
     // From Reg file
-    output logic  [4:0]          reg_a_id,
-    input  logic [31:0]          reg_a_value,
-    output logic  [4:0]          reg_b_id,
-    input  logic [31:0]          reg_b_value,
-    output logic  [4:0]          reg_d_id,
+    output logic  [4:0]           reg_a_id,
+    input  logic [31:0]           reg_a_value,
+    output logic  [4:0]           reg_b_id,
+    input  logic [31:0]           reg_b_value,
+    output logic  [4:0]           reg_d_id,
     // From FETCH stage
-    input  logic [31:0]          instr,
-    input  logic [31:0]          pc,
+    input  logic [31:0]           instr,
+    input  logic [31:0]           pc,
     // To FETCH stage
-    output logic                 pc_new_valid,
-    output logic [31:0]          pc_new,
-    // To MEM stage
-    output logic [31:0]          mem_addr,
-    output logic [31:0]          mem_wdata,
-    output core_pkg::mem_dir_e   mem_dir,
-    output core_pkg::mem_size_e  mem_size,
+    output logic                  pc_new_valid,
+    output logic [31:0]           pc_new,
+    // From/to MEM stage
+    output logic [31:0]           mem_addr,
+    output logic [31:0]           mem_wdata,
+    output core_pkg::mem_dir_e    mem_dir,
+    output core_pkg::mem_size_e   mem_size,
+    output core_pkg::mem_rsv_e    mem_rsv,
+    input  logic                  mem_rsv_valid,
+    input  logic [31:0]           mem_last_rdata,
     // To Write-back mux
-    output core_pkg::wb_src_e    wb_src,
-    output logic [31:0]          exec_result
+    output core_pkg::wb_src_e     wb_src,
+    output logic [31:0]           exec_result
 );
 
     import core_pkg::*;
 
     // Control signals
+    ctrl_path_e    pre_ctrl_path;
     imm_type_e     imm_type;
     exec_src_e     exec_src;
     alu_op_e       alu_op;
@@ -36,7 +42,9 @@ module core_stage_exec (
     exec_engine_e  exec_engine;
     pc_src_e       pc_src;
     br_type_e      br_type;
+    mem_src_e      mem_src;
     logic          ecall;
+    logic          sc;
 
     // Immediate value
     logic [31:0]   imm_val;
@@ -49,6 +57,8 @@ module core_stage_exec (
     logic [31:0]   alu_result;
     logic [31:0]   mul_result;
     logic [31:0]   div_result;
+
+    logic [31:0]   last_alu_result;
 
     // Branch target
     logic [31:0]   br_target;
@@ -63,6 +73,8 @@ module core_stage_exec (
     // ------------------- Decoder --------------------
     core_decoder u_decoder(
         .instr        (instr),
+        .exec_phase   (exec_phase),
+        .ctrl_path    (pre_ctrl_path),
         .imm_type     (imm_type),
         .exec_src     (exec_src),
         .alu_op       (alu_op),
@@ -72,10 +84,12 @@ module core_stage_exec (
         .wb_src       (wb_src),
         .pc_src       (pc_src),
         .br_type      (br_type),
-        .mem_op       (mem_op),
+        .mem_src      (mem_src),
         .mem_dir      (mem_dir),
         .mem_size     (mem_size),
-        .ecall        (ecall)
+        .mem_rsv      (mem_rsv),
+        .ecall        (ecall),
+        .sc           (sc)
     );
 
     assign reg_d_id = instr[11:7];
@@ -91,13 +105,14 @@ module core_stage_exec (
 
     // ---------------- EXEC Source -------------------
     core_exec_src_sel u_exec_src_sel(
-        .exec_src     (exec_src),
-        .reg_a_value  (reg_a_value),
-        .reg_b_value  (reg_b_value),
-        .imm_val      (imm_val),
-        .pc           (pc),
-        .src_a        (src_a),
-        .src_b        (src_b)
+        .exec_src        (exec_src),
+        .reg_a_value     (reg_a_value),
+        .reg_b_value     (reg_b_value),
+        .imm_val         (imm_val),
+        .pc              (pc),
+        .mem_last_rdata  (mem_last_rdata),
+        .src_a           (src_a),
+        .src_b           (src_b)
     );
 
     // -------------------- ALU -----------------------
@@ -125,12 +140,13 @@ module core_stage_exec (
     );
 
     // -----------------Engine select -----------------
-    core_exec_engine_sel u_core_exec_engine_sel(
-        .exec_engine  (exec_engine),
-        .alu_result   (alu_result),
-        .mul_result   (mul_result),
-        .div_result   (div_result),
-        .exec_result  (exec_result)
+    core_exec_engine_sel u_exec_engine_sel(
+        .exec_engine    (exec_engine),
+        .alu_result     (alu_result),
+        .mul_result     (mul_result),
+        .div_result     (div_result),
+        .mem_rsv_valid  (mem_rsv_valid),
+        .exec_result    (exec_result)
     );
 
     // ---------------- Branch & Jump -----------------
@@ -148,7 +164,28 @@ module core_stage_exec (
     assign pc_new_valid = in_pc_new_valid & exec_stage_valid & exec_stage_ready;
 
     // ------------------ MEM stage -------------------
-    assign mem_addr  = alu_result;
-    assign mem_wdata = reg_b_value;
+    core_mem_src_sel u_mem_src_sel(
+        .mem_src          (mem_src),
+        .reg_b_value      (reg_b_value),
+        .alu_result       (alu_result),
+        .last_alu_result  (last_alu_result),
+        .mem_addr         (mem_addr),
+        .mem_wdata        (mem_wdata)
+    );
+
+    // -------------- Control path mod ----------------
+    // If instr is SC, we modify the ctrl_path based on mem_rsv_valid
+    assign ctrl_path = (sc & ~mem_rsv_valid) ? CTRL_EXEC : pre_ctrl_path;
+
+    // --------------- Last ALU result ----------------
+    // Only store the last ALU result in first phase
+    flope #(
+        .WIDTH  (32)
+    ) u_last_alu_result(
+        .clk    (clk),
+        .en     (exec_stage_valid & exec_stage_ready & ~exec_phase),
+        .d      (alu_result),
+        .q      (last_alu_result)
+    );
 
 endmodule
