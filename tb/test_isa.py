@@ -1,11 +1,13 @@
 import os, cocotb
 import utils
 from sequences import reset_sequence
-from cocotb.triggers import ClockCycles, RisingEdge, First
+from cocotb.triggers import ClockCycles
 
 
-PROJ_DIR = utils.get_proj_dir()
-MAX_CLK  = 100000
+PROJ_DIR     = utils.get_proj_dir()
+POLL_CLK     = 1000
+MAX_POLL     = 100
+TO_HOST_ADDR = 0x1000
 
 
 async def test_isa(tb, test_name):
@@ -17,16 +19,15 @@ async def test_isa(tb, test_name):
     # Backdoor some instructions
     utils.load_bin_to_ram(dut, f"{PROJ_DIR}/build/isa/{test_name}.bin")
 
-    # Wait for ecall or max cycles
-    ecall   = RisingEdge(dut.u_core.u_stage_exec.ecall)
-    max_clk = ClockCycles(dut.clk, MAX_CLK)
-    await First(ecall, max_clk)
+    # Poll the mem at 0x1000 for changes
+    for poll in range(MAX_POLL):
+        await ClockCycles(dut.clk, POLL_CLK)
+        if utils.ram(dut, TO_HOST_ADDR).value != 0:
+            break
 
-    # Check the final result is register
-    # Reg a7 (x17) is always 93
-    # Reg a0 (x10) == 0 means pass
-    assert dut.u_core.u_reg_file.reg_mem[17].value == 93
-    assert dut.u_core.u_reg_file.reg_mem[10].value == 0
+    # Check the final result in mem at 0x1000
+    # A value of 1 means pass, > 1 means fail
+    assert utils.ram(dut, TO_HOST_ADDR).value == 1
 
 
 # Read the list of tests in a file, then generate the test code

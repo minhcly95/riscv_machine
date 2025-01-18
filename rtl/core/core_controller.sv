@@ -13,7 +13,12 @@ module core_controller (
     output logic                  mem_stage_valid,
     input  logic                  mem_stage_ready,
     // To Write-back mux
-    output logic                  reg_d_en
+    output logic                  reg_d_en,
+    // To CSR
+    output logic                  csr_en,
+    output logic                  instr_done,
+    // From Trap handler
+    input  logic                  exception_valid
 );
 
     import core_pkg::*;
@@ -42,15 +47,19 @@ module core_controller (
 
     // Transition
     always_comb begin
-        case (curr_state)
-            IDLE:    next_state = FETCH;
-            FETCH:   next_state = fetch_stage_ready ? EXEC_0 : FETCH;
-            EXEC_0:  next_state = exec_stage_ready  ? (is_mem_op ? MEM_0  : FETCH) : EXEC_0;
-            MEM_0:   next_state = mem_stage_ready   ? (two_phase ? EXEC_1 : FETCH) : MEM_0;
-            EXEC_1:  next_state = exec_stage_ready  ? MEM_1  : EXEC_1;
-            MEM_1:   next_state = mem_stage_ready   ? FETCH  : MEM_1;
-            default: next_state = IDLE;
-        endcase
+        if (exception_valid)
+            // Go back to FETCH immediately after an exception
+            next_state = FETCH;
+        else
+            case (curr_state)
+                IDLE:    next_state = FETCH;
+                FETCH:   next_state = fetch_stage_ready ? EXEC_0 : FETCH;
+                EXEC_0:  next_state = exec_stage_ready  ? (is_mem_op ? MEM_0  : FETCH) : EXEC_0;
+                MEM_0:   next_state = mem_stage_ready   ? (two_phase ? EXEC_1 : FETCH) : MEM_0;
+                EXEC_1:  next_state = exec_stage_ready  ? MEM_1  : EXEC_1;
+                MEM_1:   next_state = mem_stage_ready   ? FETCH  : MEM_1;
+                default: next_state = IDLE;
+            endcase
     end
 
     // Control path decode
@@ -77,14 +86,23 @@ module core_controller (
     assign mem_stage_valid   = (curr_state == MEM_0)  | (curr_state == MEM_1);
     assign exec_phase        = (curr_state == EXEC_1) | (curr_state == MEM_1);
 
-    // Write register when
+    // Write register when no exception and
     // If CTRL_MEM or CTRL_AMO: end of MEM_0 stage
     // If CTRL_EXEC: end of EXEC_0 stage
     always_comb begin
-        if (is_mem_op)
+        if (exception_valid)
+            reg_d_en = 1'b0;
+        else if (is_mem_op)
             reg_d_en = (curr_state == MEM_0)  & mem_stage_ready;
         else
             reg_d_en = (curr_state == EXEC_0) & exec_stage_ready;
     end
+
+    // Access CSR in EXEC phase
+    assign csr_en = exec_stage_valid & exec_stage_ready;
+
+    // Instruction is retired when the next state is FETCH
+    // but not due to an exception
+    assign instr_done = (curr_state != FETCH) & (next_state == FETCH) & ~exception_valid;
 
 endmodule

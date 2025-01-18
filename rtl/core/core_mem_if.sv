@@ -6,6 +6,7 @@ module core_mem_if (
     output logic         imem_ready,
     input  logic [31:0]  imem_addr,
     output logic [31:0]  imem_rdata,
+    output logic         imem_err,
     // From MEM stage
     input  logic         dmem_valid,
     output logic         dmem_ready,
@@ -14,6 +15,7 @@ module core_mem_if (
     input  logic [31:0]  dmem_wdata,
     input  logic  [3:0]  dmem_wstrb,
     output logic [31:0]  dmem_rdata,
+    output logic         dmem_err,
     // APB master
     output logic         psel,
     output logic         penable,
@@ -48,7 +50,10 @@ module core_mem_if (
 
     // APB response
     assign imem_rdata = prdata;
+    assign imem_err   = pslverr;
+
     assign dmem_rdata = prdata;
+    assign dmem_err   = pslverr;
 
     // Assertion: imem_valid and dmem_valid are mutually exclusive
     A_SingleValid: assert property (@(posedge clk) disable iff (~rst_n)

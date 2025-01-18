@@ -1,5 +1,7 @@
 ${PROJ_DIR}/rtl/common/flope.sv
 ${PROJ_DIR}/rtl/common/floper.sv
+${PROJ_DIR}/rtl/common/static_counter.sv
+${PROJ_DIR}/rtl/common/settable_counter.sv
 
 ${PROJ_DIR}/rtl/core/core_pkg.sv
 ${PROJ_DIR}/rtl/core/exec/core_decoder.sv
@@ -12,6 +14,7 @@ ${PROJ_DIR}/rtl/core/exec/core_div_stage.sv
 ${PROJ_DIR}/rtl/core/exec/core_div.sv
 ${PROJ_DIR}/rtl/core/exec/core_pc_new_sel.sv
 ${PROJ_DIR}/rtl/core/exec/core_mem_src_sel.sv
+${PROJ_DIR}/rtl/core/exec/core_misaligned_calc.sv
 ${PROJ_DIR}/rtl/core/core_controller.sv
 ${PROJ_DIR}/rtl/core/core_stage_fetch.sv
 ${PROJ_DIR}/rtl/core/core_stage_exec.sv
@@ -19,6 +22,8 @@ ${PROJ_DIR}/rtl/core/core_stage_mem.sv
 ${PROJ_DIR}/rtl/core/core_reg_file.sv
 ${PROJ_DIR}/rtl/core/core_mem_if.sv
 ${PROJ_DIR}/rtl/core/core_wb_mux.sv
+${PROJ_DIR}/rtl/core/core_csr.sv
+${PROJ_DIR}/rtl/core/core_trap_handler.sv
 ${PROJ_DIR}/rtl/core/core_top.sv
 
 ${PROJ_DIR}/rtl/top/ram.sv

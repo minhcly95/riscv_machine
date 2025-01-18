@@ -12,13 +12,19 @@ module core_stage_fetch #(
     // From EXEC stage
     input  logic         pc_new_valid,
     input  logic [31:0]  pc_new,
+    // From CSR
+    input  logic         pc_csr_valid,
+    input  logic [31:0]  pc_csr,
     // To Write-back mux
     output logic [31:0]  pc_plus_4,
     // Memory interface
     output logic         imem_valid,
     input  logic         imem_ready,
     output logic [31:0]  imem_addr,
-    input  logic [31:0]  imem_rdata
+    input  logic [31:0]  imem_rdata,
+    input  logic         imem_err,
+    // To Trap handler
+    output logic         ex_instr_access_fault
 );
 
     logic        fetch_done;
@@ -31,11 +37,12 @@ module core_stage_fetch #(
 
     // PC register
     // Increases by 4 every FETCH cycle
-    // or gets updated with new value from EXEC.
+    // or gets updated with new value from EXEC/CSR.
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)            curr_pc <= RESET_VECTOR;
-        else if (fetch_done)   curr_pc <= curr_pc + 4;
+        else if (pc_csr_valid) curr_pc <= pc_csr;
         else if (pc_new_valid) curr_pc <= pc_new;
+        else if (fetch_done)   curr_pc <= curr_pc + 4;
     end
 
     // Store the old PC for the EXEC stage
@@ -54,5 +61,8 @@ module core_stage_fetch #(
     always_ff @(posedge clk) begin
         if (fetch_done) instr <= imem_rdata;
     end
+
+    // Access fault happens when memory interface returns with an error
+    assign ex_instr_access_fault = fetch_done & imem_err;
 
 endmodule

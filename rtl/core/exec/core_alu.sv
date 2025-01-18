@@ -35,6 +35,9 @@ module core_alu (
             ALU_AND:  alu_result = src_a & src_b;
             ALU_OR:   alu_result = src_a | src_b;
             ALU_XOR:  alu_result = src_a ^ src_b;
+            ALU_ANDN: alu_result = src_a & ~src_b;
+            ALU_ORN:  alu_result = src_a | ~src_b;
+            ALU_XNOR: alu_result = src_a ^ ~src_b;
             ALU_SLL,
             ALU_SRL,
             ALU_SRA:  alu_result = shifter_result;

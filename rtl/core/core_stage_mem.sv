@@ -23,11 +23,16 @@ module core_stage_mem (
     output logic                 dmem_write,
     output logic [31:0]          dmem_wdata,
     output logic  [3:0]          dmem_wstrb,
-    input  logic [31:0]          dmem_rdata
+    input  logic [31:0]          dmem_rdata,
+    input  logic                 dmem_err,
+    // To Trap handler
+    output logic                 ex_load_access_fault,
+    output logic                 ex_store_access_fault
 );
 
     import core_pkg::*;
 
+    logic         mem_done;
     logic         rsv_addr_valid;
     logic [29:0]  rsv_addr;
     logic         rsv_addr_matched;
@@ -35,6 +40,7 @@ module core_stage_mem (
     // Handshake
     assign dmem_valid      = mem_stage_valid;
     assign mem_stage_ready = dmem_ready;
+    assign mem_done        = mem_stage_valid & mem_stage_ready;
 
     // D-mem address (must be 4B-aligned)
     assign dmem_addr = {mem_addr[31:2], 2'b0};
@@ -150,5 +156,9 @@ module core_stage_mem (
         .d      (mem_rdata),
         .q      (mem_last_rdata)
     );
+
+    // Access fault happens when memory interface returns with an error
+    assign ex_load_access_fault  = mem_done & dmem_err & (mem_dir == MEM_READ);
+    assign ex_store_access_fault = mem_done & dmem_err & (mem_dir == MEM_WRITE);
 
 endmodule

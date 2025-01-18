@@ -20,7 +20,7 @@ module core_pc_new_sel (
         case (pc_src)
             PC_JUMP: begin
                 pc_new_valid = 1'b1;
-                pc_new       = alu_result;
+                pc_new       = {alu_result[31:1], 1'b0};
             end
             PC_BRANCH: begin
                 pc_new_valid = (br_type == BRANCH_NZ) ? alu_nonzero : ~alu_nonzero;

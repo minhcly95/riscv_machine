@@ -18,8 +18,14 @@ module core_decoder (
     output core_pkg::mem_dir_e      mem_dir,
     output core_pkg::mem_size_e     mem_size,
     output core_pkg::mem_rsv_e      mem_rsv,
+    output logic                    sc,
+    output logic [11:0]             csr_id,
+    output logic                    csr_read,
+    output logic                    csr_write,
     output logic                    ecall,
-    output logic                    sc
+    output logic                    ebreak,
+    output logic                    mret,
+    output logic                    illegal_instr
 );
 
     import core_pkg::*;
@@ -34,37 +40,62 @@ module core_decoder (
 
     opcode_e    opcode;
     logic [2:0] funct3;
+    logic [6:0] funct7;
+    br_op_e     br_op;
     amo_op_e    amo_op;
+    sys_op_e    sys_op;
 
     logic       is_shift_op;
     alu_op_e    dec_alu_op;
     alu_op_e    dec_alu_opimm;
 
+    logic       zero_rd;
+    logic       zero_rs1;
+
     logic [CTRL_W-1:0] ctrl;
+
+    logic       illegal_op;
+    logic       illegal_opimm;
+    logic       illegal_branch;
+    logic       illegal_load;
+    logic       illegal_store;
+    logic       illegal_amo;
+    logic       illegal_system;
+
+    // Helper conditions
+    assign zero_rd  = (instr[11:7]  == 5'd0);
+    assign zero_rs1 = (instr[19:15] == 5'd0);
 
     // Decompose into components
     assign opcode = opcode_e'(instr[6:0]);
     assign funct3 = instr[14:12];
+    assign funct7 = instr[31:25];
+    assign br_op  = br_op_e'(funct3);
     assign amo_op = amo_op_e'(instr[31:27]);
+    assign sys_op = sys_op_e'(funct3);
 
     // Aggregate all the controls
     assign {ctrl_path, imm_type, exec_src, wb_src, pc_src, mem_dir} = ctrl;
 
     // Main decode table
     always_comb begin
+        ecall  = 1'b0;
+        ebreak = 1'b0;
+        mret   = 1'b0;
+
         case (opcode)
-            OP_OP:        ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_EXEC,  PC_NORMAL, MEM_READ};
-            OP_OPIMM:     ctrl = {CTRL_EXEC, IMM_I, SRC_RI, WB_EXEC,  PC_NORMAL, MEM_READ};
-            OP_LUI:       ctrl = {CTRL_EXEC, IMM_U, SRC_ZI, WB_EXEC,  PC_NORMAL, MEM_READ};
-            OP_AUIPC:     ctrl = {CTRL_EXEC, IMM_U, SRC_PI, WB_EXEC,  PC_NORMAL, MEM_READ};
-            OP_JAL:       ctrl = {CTRL_EXEC, IMM_J, SRC_PI, WB_FETCH, PC_JUMP,   MEM_READ};
-            OP_JALR:      ctrl = {CTRL_EXEC, IMM_I, SRC_RI, WB_FETCH, PC_JUMP,   MEM_READ};
-            OP_BRANCH:    ctrl = {CTRL_EXEC, IMM_B, SRC_RR, WB_NONE,  PC_BRANCH, MEM_READ};
-            OP_LOAD:      ctrl = {CTRL_MEM,  IMM_I, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ};
-            OP_STORE:     ctrl = {CTRL_MEM,  IMM_S, SRC_RI, WB_NONE,  PC_NORMAL, MEM_WRITE};
+            OP_OP:          ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_EXEC,  PC_NORMAL, MEM_READ};
+            OP_OPIMM:       ctrl = {CTRL_EXEC, IMM_I, SRC_RI, WB_EXEC,  PC_NORMAL, MEM_READ};
+            OP_LUI:         ctrl = {CTRL_EXEC, IMM_U, SRC_ZI, WB_EXEC,  PC_NORMAL, MEM_READ};
+            OP_AUIPC:       ctrl = {CTRL_EXEC, IMM_U, SRC_PI, WB_EXEC,  PC_NORMAL, MEM_READ};
+            OP_JAL:         ctrl = {CTRL_EXEC, IMM_J, SRC_PI, WB_FETCH, PC_JUMP,   MEM_READ};
+            OP_JALR:        ctrl = {CTRL_EXEC, IMM_I, SRC_RI, WB_FETCH, PC_JUMP,   MEM_READ};
+            OP_BRANCH:      ctrl = {CTRL_EXEC, IMM_B, SRC_RR, WB_NONE,  PC_BRANCH, MEM_READ};
+            OP_LOAD:        ctrl = {CTRL_MEM,  IMM_I, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ};
+            OP_STORE:       ctrl = {CTRL_MEM,  IMM_S, SRC_RI, WB_NONE,  PC_NORMAL, MEM_WRITE};
             OP_AMO: case (amo_op)
-                AMO_LR:   ctrl = {CTRL_MEM,  IMM_Z, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ};
-                AMO_SC:   ctrl = {CTRL_MEM,  IMM_Z, SRC_RI, WB_EXEC,  PC_NORMAL, MEM_WRITE};
+                AMO_LR:     ctrl = {CTRL_MEM,  IMM_Z, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ};
+                AMO_SC:     ctrl = {CTRL_MEM,  IMM_Z, SRC_RI, WB_EXEC,  PC_NORMAL, MEM_WRITE};
                 AMO_SWAP,
                 AMO_ADD,
                 AMO_XOR,
@@ -74,12 +105,27 @@ module core_decoder (
                 AMO_MAX,
                 AMO_MINU,
                 AMO_MAXU: case (exec_phase)
-                    1'b0: ctrl = {CTRL_AMO,  IMM_Z, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ};
-                    1'b1: ctrl = {CTRL_AMO,  IMM_Z, SRC_MR, WB_NONE,  PC_NORMAL, MEM_WRITE};
+                    1'b0:   ctrl = {CTRL_AMO,  IMM_Z, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ};
+                    1'b1:   ctrl = {CTRL_AMO,  IMM_Z, SRC_MR, WB_NONE,  PC_NORMAL, MEM_WRITE};
                 endcase
-                default:  ctrl = {CTRL_EXEC, IMM_Z, SRC_RI, WB_NONE,  PC_NORMAL, MEM_READ};
+                default:    ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_NONE,  PC_NORMAL, MEM_READ};
             endcase
-            default:      ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_NONE,  PC_NORMAL, MEM_READ};
+            OP_SYSTEM: case (sys_op)
+                SYS_CSRRW,
+                SYS_CSRRS,
+                SYS_CSRRC:  ctrl = {CTRL_EXEC, IMM_C, SRC_CA, WB_EXEC,  PC_NORMAL, MEM_READ};
+                SYS_CSRRWI,
+                SYS_CSRRSI,
+                SYS_CSRRCI: ctrl = {CTRL_EXEC, IMM_C, SRC_CI, WB_EXEC,  PC_NORMAL, MEM_READ};
+                SYS_PRIV: begin
+                    ctrl   = {CTRL_EXEC, IMM_Z, SRC_RI, WB_NONE,  PC_NORMAL, MEM_READ};
+                    ecall  = (instr[31:20] == 12'b0000000_00000);
+                    ebreak = (instr[31:20] == 12'b0000000_00001);
+                    mret   = (instr[31:20] == 12'b0011000_00010);
+                end
+                default:    ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_NONE,  PC_NORMAL, MEM_READ};
+            endcase
+            default:        ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_NONE,  PC_NORMAL, MEM_READ};
         endcase
     end
 
@@ -93,6 +139,8 @@ module core_decoder (
             endcase
         else if ((opcode == OP_AMO) & (amo_op == AMO_SC))
             exec_engine = EXEC_RSV;
+        else if (opcode == OP_SYSTEM)
+            exec_engine = EXEC_CSR;
         else
             exec_engine = EXEC_ALU;
     end
@@ -133,6 +181,15 @@ module core_decoder (
                 {1'b1, AMO_MAXU}: alu_op = ALU_MAXU;
                 default: alu_op = ALU_ADD;
             endcase
+            OP_SYSTEM: case (sys_op)
+                SYS_CSRRW:  alu_op = ALU_OB;
+                SYS_CSRRS:  alu_op = ALU_OR;
+                SYS_CSRRC:  alu_op = ALU_ANDN;
+                SYS_CSRRWI: alu_op = ALU_OB;
+                SYS_CSRRSI: alu_op = ALU_OR;
+                SYS_CSRRCI: alu_op = ALU_ANDN;
+                default:    alu_op = ALU_ADD;
+            endcase
             default:     alu_op = ALU_ADD;
         endcase
     end
@@ -145,7 +202,7 @@ module core_decoder (
 
     // Branch type decode
     always_comb begin
-        case (funct3)
+        case (br_op)
             BEQ:     br_type = BRANCH_Z;
             BNE:     br_type = BRANCH_NZ;
             BLT:     br_type = BRANCH_NZ;
@@ -155,9 +212,6 @@ module core_decoder (
             default: br_type = BRANCH_Z;
         endcase
     end
-
-    // ECALL command
-    assign ecall = (opcode == OP_SYSTEM) & (instr[31:7] == 0);
 
     // SC command
     assign sc = (opcode == OP_AMO) & (amo_op == AMO_SC);
@@ -172,6 +226,137 @@ module core_decoder (
             endcase
         else
             mem_rsv = RSV_NONE;
+    end
+
+    // CSR decode
+    assign csr_id = instr[31:20];
+
+    always_comb begin
+        if (opcode == OP_SYSTEM) begin
+            case (sys_op)
+                SYS_CSRRW,
+                SYS_CSRRWI: begin
+                    csr_read  = ~zero_rd;
+                    csr_write = 1'b1;
+                end
+                SYS_CSRRS,
+                SYS_CSRRSI,
+                SYS_CSRRC,
+                SYS_CSRRCI: begin
+                    csr_read  = 1'b1;
+                    csr_write = ~zero_rs1;
+                end
+                default: begin
+                    csr_read  = 1'b0;
+                    csr_write = 1'b0;
+                end
+            endcase
+        end
+        else begin
+            csr_read  = 1'b0;
+            csr_write = 1'b0;
+        end
+    end
+
+    // Illegal instruction decode
+    always_comb begin
+        case (opcode)
+            OP_OP:      illegal_instr = illegal_op;
+            OP_OPIMM:   illegal_instr = illegal_opimm;
+            OP_LUI:     illegal_instr = 1'b0;
+            OP_AUIPC:   illegal_instr = 1'b0;
+            OP_JAL:     illegal_instr = 1'b0;
+            OP_JALR:    illegal_instr = 1'b0;
+            OP_BRANCH:  illegal_instr = illegal_branch;
+            OP_LOAD:    illegal_instr = illegal_load;
+            OP_STORE:   illegal_instr = illegal_store;
+            OP_AMO:     illegal_instr = illegal_amo;
+            OP_SYSTEM:  illegal_instr = illegal_system;
+            OP_MISCMEM: illegal_instr = 1'b0;
+            default:    illegal_instr = 1'b1;
+        endcase
+    end
+
+    always_comb begin
+        case (funct7)
+            7'b0000001: illegal_op = 1'b0;  // All MUL and DIV ops
+            7'b0000000: illegal_op = 1'b0;  // All ALU ops
+            7'b0100000: illegal_op = (funct3 != 3'b000) & (funct3 != 3'b101);   // Only SUB and SRA
+            default:    illegal_op = 1'b1;
+        endcase
+    end
+
+    always_comb begin
+        if (~is_shift_op)     illegal_opimm = 1'b0; // All arithmetic ops
+        else
+            case ({funct7, funct3[2]})
+                8'b0000000_0,
+                8'b0000000_1,
+                8'b0100000_1: illegal_opimm = 1'b0; // SLLI, SRLI, SRAI
+                default:      illegal_opimm = 1'b1;
+            endcase
+    end
+
+    always_comb begin
+        case (br_op)
+            BEQ,
+            BNE,
+            BLT,
+            BGE,
+            BLTU,
+            BGEU:    illegal_branch = 1'b0;
+            default: illegal_branch = 1'b1;
+        endcase
+    end
+
+    always_comb begin
+        case (mem_size)
+            SIZE_B,
+            SIZE_H,
+            SIZE_W,
+            SIZE_BU,
+            SIZE_HU: illegal_load = 1'b0;
+            default: illegal_load = 1'b1;
+        endcase
+    end
+
+    always_comb begin
+        case (mem_size)
+            SIZE_B,
+            SIZE_H,
+            SIZE_W:  illegal_store = 1'b0;
+            default: illegal_store = 1'b1;
+        endcase
+    end
+
+    always_comb begin
+        case (amo_op)
+            AMO_LR,
+            AMO_SC,
+            AMO_SWAP,
+            AMO_ADD,
+            AMO_XOR,
+            AMO_OR,
+            AMO_AND,
+            AMO_MIN,
+            AMO_MAX,
+            AMO_MINU,
+            AMO_MAXU: illegal_amo = (mem_size != SIZE_W);
+            default:  illegal_amo = 1'b1;
+        endcase
+    end
+
+    always_comb begin
+        case (sys_op)
+            SYS_CSRRW,
+            SYS_CSRRS,
+            SYS_CSRRC,
+            SYS_CSRRWI,
+            SYS_CSRRSI,
+            SYS_CSRRCI: illegal_system = 1'b0;
+            SYS_PRIV:   illegal_system = ~|{ecall, ebreak, mret};
+            default:    illegal_system = 1'b1;
+        endcase
     end
 
 endmodule

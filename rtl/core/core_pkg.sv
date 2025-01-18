@@ -28,7 +28,8 @@ package core_pkg;
         IMM_S,
         IMM_B,
         IMM_U,
-        IMM_J
+        IMM_J,
+        IMM_C       // CSR imm
     } imm_type_e;
 
     typedef enum logic [2:0] {
@@ -36,7 +37,9 @@ package core_pkg;
         SRC_RI,
         SRC_PI,
         SRC_ZI,
-        SRC_MR
+        SRC_MR,
+        SRC_CA,
+        SRC_CI
     } exec_src_e;
 
     typedef enum logic [4:0] {
@@ -47,6 +50,9 @@ package core_pkg;
         ALU_AND  = 5'b00_111,
         ALU_OR   = 5'b00_110,
         ALU_XOR  = 5'b00_100,
+        ALU_ANDN = 5'b01_111,
+        ALU_ORN  = 5'b01_110,
+        ALU_XNOR = 5'b01_100,
         ALU_SLL  = 5'b00_001,
         ALU_SRL  = 5'b00_101,
         ALU_SRA  = 5'b01_101,
@@ -72,11 +78,12 @@ package core_pkg;
         DIV_REMU = 2'b11
     } div_op_e;
 
-    typedef enum logic [1:0] {
-        EXEC_ALU = 2'b00,
-        EXEC_RSV = 2'b01,
-        EXEC_MUL = 2'b10,
-        EXEC_DIV = 2'b11
+    typedef enum logic [2:0] {
+        EXEC_ALU = 3'b000,
+        EXEC_MUL = 3'b010,
+        EXEC_DIV = 3'b011,
+        EXEC_CSR = 3'b100,
+        EXEC_RSV = 3'b101
     } exec_engine_e;
 
     typedef enum logic [1:0] {
@@ -143,5 +150,40 @@ package core_pkg;
         AMO_MINU = 5'b11000,
         AMO_MAXU = 5'b11100
     } amo_op_e;
+
+    typedef enum logic [2:0] {
+        SYS_PRIV   = 3'b000,
+        SYS_CSRRW  = 3'b001,
+        SYS_CSRRS  = 3'b010,
+        SYS_CSRRC  = 3'b011,
+        SYS_CSRRWI = 3'b101,
+        SYS_CSRRSI = 3'b110,
+        SYS_CSRRCI = 3'b111
+    } sys_op_e;
+
+    typedef enum logic [1:0] {
+        PRIV_U = 2'b00,
+        PRIV_S = 2'b01,
+        PRIV_M = 2'b11
+    } priv_e;
+
+    typedef enum logic [5:0] {
+        EX_INSTR_MISALIGNED   = 6'd0,
+        EX_INSTR_ACCESS_FAULT = 6'd1,
+        EX_ILLEGAL_INSTR      = 6'd2,
+        EX_BREAKPOINT         = 6'd3,
+        EX_LOAD_MISALIGNED    = 6'd4,
+        EX_LOAD_ACCESS_FAULT  = 6'd5,
+        EX_STORE_MISALIGNED   = 6'd6,
+        EX_STORE_ACCESS_FAULT = 6'd7,
+        EX_ECALL_UMODE        = 6'd8,
+        EX_ECALL_SMODE        = 6'd9,
+        EX_ECALL_MMODE        = 6'd11,
+        EX_INSTR_PAGE_FAULT   = 6'd12,
+        EX_LOAD_PAGE_FAULT    = 6'd13,
+        EX_STORE_PAGE_FAULT   = 6'd15,
+        EX_SOFTWARE_CHECK     = 6'd18,
+        EX_HARDWARE_ERROR     = 6'd19
+    } exception_e;
 
 endpackage
