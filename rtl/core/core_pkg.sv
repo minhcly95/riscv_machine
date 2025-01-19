@@ -118,9 +118,10 @@ package core_pkg;
         MEMSRC_LAST_ALU = 1'b1
     } mem_src_e;
 
-    typedef enum logic [0:0] {
-        MEM_READ  = 1'b0,
-        MEM_WRITE = 1'b1
+    typedef enum logic [1:0] {
+        MEM_READ     = 2'b00,
+        MEM_WRITE    = 2'b01,
+        MEM_READ_AMO = 2'b10
     } mem_dir_e;
 
     typedef enum logic [2:0] {

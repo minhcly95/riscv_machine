@@ -14,7 +14,7 @@ ${PROJ_DIR}/rtl/core/exec/core_div_stage.sv
 ${PROJ_DIR}/rtl/core/exec/core_div.sv
 ${PROJ_DIR}/rtl/core/exec/core_pc_new_sel.sv
 ${PROJ_DIR}/rtl/core/exec/core_mem_src_sel.sv
-${PROJ_DIR}/rtl/core/exec/core_misaligned_calc.sv
+${PROJ_DIR}/rtl/core/exec/core_exec_exception.sv
 ${PROJ_DIR}/rtl/core/core_controller.sv
 ${PROJ_DIR}/rtl/core/core_stage_fetch.sv
 ${PROJ_DIR}/rtl/core/core_stage_exec.sv

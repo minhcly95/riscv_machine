@@ -86,8 +86,6 @@ module core_stage_exec (
     logic          ecall;
     logic          ebreak;
     logic          illegal_instr;
-    logic          is_mem_op;
-    logic          mem_addr_misaligned;
 
     // ------------------ Controller ------------------
     // Always ready
@@ -224,20 +222,23 @@ module core_stage_exec (
     assign csr_wdata = alu_result;
 
     // ----------------- Exceptions -------------------
-    // Load/store address needs to be aligned with access size
-    core_misaligned_calc u_misaligned_calc(
-        .mem_size             (mem_size),
-        .mem_addr_offset      (mem_addr[1:0]),
-        .mem_addr_misaligned  (mem_addr_misaligned)
+    core_exec_exception u_exec_exception(
+        .exec_done              (exec_done),
+        .ctrl_path              (ctrl_path),
+        .pc_new_valid           (pc_new_valid),
+        .pc_new_offset          (pc_new[1:0]),
+        .mem_addr_offset        (mem_addr[1:0]),
+        .mem_dir                (mem_dir),
+        .mem_size               (mem_size),
+        .ecall                  (ecall),
+        .ebreak                 (ebreak),
+        .illegal_instr          (illegal_instr),
+        .ex_ecall               (ex_ecall),
+        .ex_ebreak              (ex_ebreak),
+        .ex_exec_illegal_instr  (ex_exec_illegal_instr),
+        .ex_instr_misaligned    (ex_instr_misaligned),
+        .ex_load_misaligned     (ex_load_misaligned),
+        .ex_store_misaligned    (ex_store_misaligned)
     );
-
-    assign is_mem_op = (ctrl_path == CTRL_MEM) | (ctrl_path == CTRL_AMO);
-
-    assign ex_instr_misaligned   = pc_new_valid & (|pc_new[1:0]);
-    assign ex_load_misaligned    = exec_done & is_mem_op & mem_addr_misaligned & (mem_dir == MEM_READ);
-    assign ex_store_misaligned   = exec_done & is_mem_op & mem_addr_misaligned & (mem_dir == MEM_WRITE);
-    assign ex_ecall              = exec_done & ecall;
-    assign ex_ebreak             = exec_done & ebreak;
-    assign ex_exec_illegal_instr = exec_done & illegal_instr;
 
 endmodule

@@ -158,7 +158,28 @@ module core_stage_mem (
     );
 
     // Access fault happens when memory interface returns with an error
-    assign ex_load_access_fault  = mem_done & dmem_err & (mem_dir == MEM_READ);
-    assign ex_store_access_fault = mem_done & dmem_err & (mem_dir == MEM_WRITE);
+    always_comb begin
+        if (mem_done & dmem_err) begin
+            case (mem_dir)
+                MEM_READ: begin
+                    ex_load_access_fault  = 1'b1;
+                    ex_store_access_fault = 1'b0;
+                end
+                MEM_WRITE,
+                MEM_READ_AMO: begin
+                    ex_load_access_fault  = 1'b0;
+                    ex_store_access_fault = 1'b1;
+                end
+                default: begin
+                    ex_load_access_fault  = 1'b0;
+                    ex_store_access_fault = 1'b0;
+                end
+            endcase
+        end
+        else begin
+            ex_load_access_fault  = 1'b0;
+            ex_store_access_fault = 1'b0;
+        end
+    end
 
 endmodule

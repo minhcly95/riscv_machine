@@ -105,7 +105,7 @@ module core_decoder (
                 AMO_MAX,
                 AMO_MINU,
                 AMO_MAXU: case (exec_phase)
-                    1'b0:   ctrl = {CTRL_AMO,  IMM_Z, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ};
+                    1'b0:   ctrl = {CTRL_AMO,  IMM_Z, SRC_RI, WB_MEM,   PC_NORMAL, MEM_READ_AMO};
                     1'b1:   ctrl = {CTRL_AMO,  IMM_Z, SRC_MR, WB_NONE,  PC_NORMAL, MEM_WRITE};
                 endcase
                 default:    ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_NONE,  PC_NORMAL, MEM_READ};
