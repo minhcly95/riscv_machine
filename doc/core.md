@@ -12,8 +12,10 @@ These 3 stages are executed in series without pipelining.
 The Controller handles the switching of the 3 stages.
 
 The `FETCH` and `MEM` stages have access to the Memory Interface for their functions.
-Only the `EXEC` stage can read the Register File,
+Only the `EXEC` stage can read the Register File and update the CSR,
 but the data from all 3 stages can be written back to the Register File, selected using the Write-back Mux.
+
+All exceptions are collected by the Trap Handler, which notifies the CSR and the Controller when an exception happens.
 
 ## Block Functions
 ### Controller
@@ -22,11 +24,14 @@ The Controller is a state machine that gives control to each of the 3 stages in 
 The `MEM` stage is not needed if the instruction is not a `MemOp` (memory operation, i.e. a `LOAD` or a `STORE`).
 This condition is conveyed by the `EXEC` stage during its turn.
 
-The Controller also controls when the Register File is written.
+The Controller also controls when the Register File and the CSR are written.
 
-As an exception, `AMO` instructions needs two `EXEC` and `MEM` phases.
+`AMO` instructions needs two `EXEC` and `MEM` phases.
 In such case, the Controller walks through the states: `FETCH`, `EXEC-0`, `MEM-0`, `EXEC-1`, `MEM-1`.
 The phase information is also passes to the `EXEC` stage.
+
+When a synchronous trap (an exception) happens, the Controller gets back to the `FETCH` stage and disable all writes to
+the Register File and the CSR, except for changes to handle the trap (setting privilege mode, updating `mcause`, `mepc`, etc.).
 
 ### `FETCH` Stage
 The `FETCH` stage holds the Program Counter (PC).
@@ -36,6 +41,8 @@ Once the instruction has been fetched, it adds 4 to the PC and yields control to
 The `FETCH` stage shall update its PC if there is a request from the `EXEC` stage in case of the `JUMP` and `BRANCH` commands.
 
 The `FETCH` stage outputs its PC to be written back to the Register File for the `JAL` and `JALR` commands.
+
+When an exception happens, the PC will be updated to the one provided by the CSR (highest priority) to service the trap.
 
 ### `EXEC` Stage
 The `EXEC` stage decodes the instructions using the [Decoder](#decoder), accesses the Register File to obtain the operand values,
@@ -78,21 +85,38 @@ The read ports are combinational and are accessed only by the `EXEC` stage.
 The write ports are controlled by the Controller, which is enabled either at the `EXEC` stage
 or at the end of `MEM` stage depending on the commands.
 
+When an exception happens, the Register file will be disabled by the Controller.
+
+### Control and Status Register (CSR)
+The CSR contains all the registers needed to support privilege modes. Currently, only M-mode and U-mode are supported.
+It manages the privilege mode, general status `mstatus`, settings to service traps (`mtvec`, `mie`, `mip`, `mcause`, `mtval`, `mepc`),
+and counters (`mcycle`, `minstret`). It receives controls from the `EXEC` stage to extract and update the values of its registers.
+
+When an exception happens, normal update to the CSR is disabled.
+Instead, the CSR receives the trap's data from the Trap handler and modifies the privilege mode and the PC to service the trap.
+PC update request from the CSR to the `FETCH` stage has the highest priority.
+
 ### Memory Interface
 The Memory Interface connects the core to the RAM of the machine via APB bus.
 All addresses go in and out of the memory interface must be aligned with the bus (4B-aligned).
 For narrow write transfer, write strobes should be used.
 
+### Trap Handler
+The Trap handler collects all the exception sources from the other modules, sorts them
+based on the priority list defined in the spec, and generates an exception code for `mcause`.
+It also collects the corresponding `mtval` to be stored in the CSR.
+The Trap handler also signals the Controller besides the CSR.
+
 ## Decoder
 The Decoder is a subcomponent of the `EXEC` stage. Its job is to decode the instruction fetched from the `FETCH` stage
 into the following conditions:
-- Immediate type: `Z` (Zero), `I`, `S`, `B`, `U`, `J`.
-- EXEC sources: `RR` (Reg + Reg), `RI` (Reg + Imm), `MR` (Mem + Reg), `PI` (PC + Imm), `ZI` (Zero + Imm).
-- ALU operation: `ADD`, `SUB`, `SLT`, `SLTU`, `AND`, `OR`, `XOR`, `SLL`, `SRL`, `SRA`, `MIN`, `MAX`, `MINU`, `MAXU`,
+- Immediate type: `Z` (Zero), `I`, `S`, `B`, `U`, `J`, `C` (`uimm` in CSR ops).
+- EXEC sources: `RR` (Reg + Reg), `RI` (Reg + Imm), `MR` (Mem + Reg), `PI` (PC + Imm), `ZI` (Zero + Imm), `CA` (CSR + `rs1`), `CI` (CSR + Imm).
+- ALU operation: `ADD`, `SUB`, `SLT`, `SLTU`, `AND`, `OR`, `XOR`, `ANDN` (and-not), `ORN` (or-not), `XNOR`, `SLL`, `SRL`, `SRA`, `MIN`, `MAX`, `MINU`, `MAXU`,
 `OA` (output `rs1`), `OB` (output `rs2`).
 - MUL operation: `MUL`, `MULH`, `MULHSU`, `MULHU`.
 - DIV operation: `DIV`, `DIVU`, `REM`, `REMU`.
-- EXEC output: `ALU`, `MUL`, `DIV`, `RSV` (reservation).
+- EXEC output: `ALU`, `MUL`, `DIV`, `RSV` (reservation), `CSR`.
 - Write-back source: `NONE`, `FETCH` (PC + 4), `EXEC`, `MEM`.
 - PC source: `NONE`, `JUMP`, `BR_Z` (branch on zero), `BR_NZ` (branch on non-zero).
 - Mem sources: `ALU_B` (addr from ALU, data from `rs2`), `LAST_ALU` (addr from last, data from ALU).
@@ -124,6 +148,8 @@ into the following conditions:
 | `SC`     | `Z`      | `RI`    | `ADD`                       | `RSV`   |         | `WRITE` if rsv. valid - `RSV_CLEAR` | `ALU_B` - `W`      |
 | `AMO-0`  | `Z`      | `RI`    | `ADD`                       | `MEM`   |         | `READ`                              | `ALU_B` - `W`      |
 | `AMO-1`  |          | `MR`    | Decode from `funct5`        |         |         | `WRITE`                             | `LAST_ALU` - `W`   |
+| `CSR`    |          | `CA`    | `OB`, `OR`, or `ANDN`       | `CSR`   |         |                                     |                    |
+| `CSRI`   | `C`      | `CI`    | `OB`, `OR`, or `ANDN`       | `CSR`   |         |                                     |                    |
 
 Empty entries are either `NONE` or N/A (e.g. immediate type is not relevant to R-type operations).
 `AMO` instructions has two `EXEC` and `MEM` phases, hence `AMO-0` and `AMO-1`.
