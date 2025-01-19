@@ -22,7 +22,7 @@ async def test_fibonacci(tb):
     await utils.wait_ecall(dut, MAX_CLK)
 
     # Check the final result is RAM (starting at 0x1000)
-    with open(f"{PROJ_DIR}/asm/fibonacci.ref", "r") as file:
+    with open(f"{PROJ_DIR}/prog/asm/fibonacci.ref", "r") as file:
         for i, line in enumerate(file):
             # Convert to int
             number = int(line)

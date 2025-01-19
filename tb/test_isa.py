@@ -33,7 +33,7 @@ async def test_isa(tb, test_name):
 # Read the list of tests in a file, then generate the test code
 def generate_tests(test_type):
     code = ""
-    with open(f"{PROJ_DIR}/isa/{test_type}.txt", "r") as file:
+    with open(f"{PROJ_DIR}/prog/isa/{test_type}.txt", "r") as file:
         for i, line in enumerate(file):
             line = line.rstrip('\n')
             code += f"""

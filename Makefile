@@ -13,10 +13,10 @@ wave:
 	gtkwave tb/dump.fst
 
 asm:
-	$(MAKE) -C asm asm
+	$(MAKE) -C prog/asm asm
 
 isa:
-	$(MAKE) -C isa isa
+	$(MAKE) -C prog/isa isa
 
 clean: clean-lint clean-sim clean-asm clean-isa
 
@@ -28,7 +28,7 @@ clean-sim:
 	rm tb/results.xml
 
 clean-asm:
-	$(MAKE) -C asm clean
+	$(MAKE) -C prog/asm clean
 
 clean-isa:
-	$(MAKE) -C isa clean
+	$(MAKE) -C prog/isa clean
