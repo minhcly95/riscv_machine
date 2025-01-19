@@ -1,7 +1,6 @@
 import os, cocotb
 import utils
 from sequences import reset_sequence
-from cocotb.triggers import ClockCycles, RisingEdge, First
 
 
 PROJ_DIR = utils.get_proj_dir()
@@ -20,9 +19,7 @@ async def test_fibonacci(tb):
     utils.load_bin_to_ram(dut, f"{PROJ_DIR}/build/asm/fibonacci.bin")
 
     # Wait for ecall or max cycles
-    ecall   = RisingEdge(dut.u_core.u_stage_exec.ecall)
-    max_clk = ClockCycles(dut.clk, MAX_CLK)
-    await First(ecall, max_clk)
+    await utils.wait_ecall(dut, MAX_CLK)
 
     # Check the final result is RAM (starting at 0x1000)
     with open(f"{PROJ_DIR}/asm/fibonacci.ref", "r") as file:

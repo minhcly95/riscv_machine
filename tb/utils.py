@@ -1,4 +1,5 @@
 import os, struct
+from cocotb.triggers import ClockCycles, RisingEdge, First
 
 def get_proj_dir():
     return os.environ["PROJ_DIR"]
@@ -24,3 +25,8 @@ def load_bin_to_ram(dut, filename):
 
     dut.u_ram._log.info(f"Loaded {i} instructions into the RAM")
 
+# Wait for either an ecall or timeout
+async def wait_ecall(dut, max_clk):
+    ecall   = RisingEdge(dut.u_core.u_stage_exec.ecall)
+    timeout = ClockCycles(dut.clk, max_clk)
+    await First(ecall, timeout)

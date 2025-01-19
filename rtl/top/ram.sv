@@ -17,7 +17,8 @@ module ram #(
 
     localparam WORD_SIZE   = 4;                     // One word in 4 bytes
     localparam WORD_CNT    = RAM_SIZE / WORD_SIZE;  // RAM size in words
-    localparam WORD_CNT_BW = $clog2(WORD_CNT);      // Bit-width
+    localparam WORD_CNT_BW = $clog2(WORD_CNT);
+    localparam RAM_SIZE_BW = $clog2(RAM_SIZE);
 
     logic [31:0]             mem_array [WORD_CNT];
     logic [WORD_CNT_BW-1:0]  word_addr;
@@ -41,7 +42,7 @@ module ram #(
     // Read interface
     assign prdata = mem_array[word_addr];
 
-    // Always success
-    assign pslverr = 1'b0;
+    // Error when out-of-range
+    assign pslverr = |paddr[31:RAM_SIZE_BW];
 
 endmodule

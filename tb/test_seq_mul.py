@@ -1,7 +1,6 @@
 import os, random, cocotb
 import utils
 from sequences import reset_sequence
-from cocotb.triggers import ClockCycles, RisingEdge, First
 
 
 PROJ_DIR    = utils.get_proj_dir()
@@ -35,9 +34,7 @@ async def test_seq_mul(tb):
         utils.ram(dut, BASE_B + (i << 2)).value = b
 
     # Wait for ecall or max cycles
-    ecall   = RisingEdge(dut.u_core.u_stage_exec.ecall)
-    max_clk = ClockCycles(dut.clk, MAX_CLK)
-    await First(ecall, max_clk)
+    await utils.wait_ecall(dut, MAX_CLK)
 
     # Check the products
     for (i, (a, b)) in enumerate(all_ab):
