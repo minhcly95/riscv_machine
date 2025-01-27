@@ -1,0 +1,12 @@
+${PROJ_DIR}/rtl/uart/uart_pkg.sv
+${PROJ_DIR}/rtl/uart/uart_tx.sv
+${PROJ_DIR}/rtl/uart/uart_rx.sv
+${PROJ_DIR}/rtl/uart/uart_fifo.sv
+${PROJ_DIR}/rtl/uart/uart_tx_fifo.sv
+${PROJ_DIR}/rtl/uart/uart_rx_fifo.sv
+${PROJ_DIR}/rtl/uart/uart_clock_gen.sv
+${PROJ_DIR}/rtl/uart/uart_intc.sv
+${PROJ_DIR}/rtl/uart/uart_rx_timer.sv
+${PROJ_DIR}/rtl/uart/uart_reg.sv
+${PROJ_DIR}/rtl/uart/uart_apb.sv
+${PROJ_DIR}/rtl/uart/uart_top.sv

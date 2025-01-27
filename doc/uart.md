@@ -6,8 +6,7 @@ The register map is compatible with the NS16550 IC.
 ## Architecture
 The main parts of the UART module are:
 - Transmitter (TX) and Receiver (TX) with their respective FIFOs to decode UART signals,
-- Control and Status Register (CSR) to store the configurations,
-- APB interface to connect with the bus.
+- Register file to store the configurations with an APB interface to connect to the bus.
 
 The UART module also includes an INTC to control the interrupt, and a clock generator
 to provide clock scaling for the TX and RX.
@@ -36,21 +35,21 @@ Once a frame is done receiving, it pushes all data and errors to the RX FIFO.
 The scaled clock is provided by the Clock generator.
 
 ### TX and RX FIFO
-TX and RX FIFO are buffers that can store up to 16 data frames. They can be bypassed if the FIFO feature is disabled in the CSR.
+TX and RX FIFO are buffers that can store up to 16 data frames. They can be bypassed if the FIFO feature is disabled.
 
-### Control and Status Register (CSR)
-The CSR store all the configurations of the module. The configurations include:
-- Interrupt enable (`IER`): Data ready, THR ready, RX line status, Modem status;
+### Register File
+The Register file stores all the configurations of the module. The configurations include:
+- Interrupt enable (`IER`): Data ready, THR empty, RX line status, Modem status;
 - FIFO control (`FCR`): FIFO enable, RX FIFO trigger level;
 - Line control (`LCR`): Word length, Stop bit, Parity enable, Even parity, Force parity, Set break, DLAB;
-- Modem control (`MCR`): DTR, RTS, Out 1/2, Look back;
+- Modem control (`MCR`): DTR, RTS, Out 1/2, Loopback;
 - Divisor constant (`DLL/M`)
 
 Status is collected from other modules. Modem control and status are not supported
 (content of `MCR` is ignored, `MSR` always returns zero).
 
 ### APB Interface
-The APB interface exposes the CSR and the FIFOs to the outside via the APB bus. The bus is 32-bit wide.
+The APB interface exposes the Register file to the outside via the APB bus. The bus is 32-bit wide.
 However, one register in the NS16550 is 1-byte long, and register reads have side effects.
 Thus, unstandard APB is used to support unaligned access.
 The APB interface will accept `PADDR` and output only that exact byte at the correct byte lane, which is similar to the AXI protocol.
@@ -61,7 +60,7 @@ RISC-V core is expected to access the UART memory space using only `LB`, `LBU`, 
 
 ### Clock Generator
 The Clock generator produces a pulse periodically for the TX and RX.
-The period of the pulse is determined by the divisor constant in the CSR.
+The period of the pulse is determined by the divisor constant in the Register file.
 A bit on the UART I/O lasts for 16 such pulses.
 This means the baud rate is calculated as:
 ```
@@ -85,10 +84,10 @@ If the RX FIFO is not enabled, the timer is disabled.
 |----------------|----------------------------|-------------------|-------------------|------------------|-------------------|-------------------|-------------------|-------------------|-------------------|
 | `R-0`          | RX Holding (`RHR`)         | RX 7              | RX 6              | RX 5             | RX 4              | RX 3              | RX 2              | RX 1              | RX 0              |
 | `W-0`          | TX Holding (`THR`)         | TX 7              | TX 6              | TX 5             | TX 4              | TX 3              | TX 2              | TX 1              | TX 0              |
-| `RW-1`         | Interrupt Enable (`IER`)   | 0                 | 0                 | 0                | 0                 | Modem status      | RX line status    | THR status        | Data ready        |
+| `RW-1`         | Interrupt Enable (`IER`)   | 0                 | 0                 | 0                | 0                 | Modem status      | RX line status    | THR empty         | Data ready        |
 | `R-2`          | Interrupt Status (`ISR`)   | FIFO enable       | FIFO enable       | 0                | 0                 | Int code 2        | Int code 1        | Int code 0        | Int status        |
 | `W-2`          | FIFO Control (`FCR`)       | Trigger level 1   | Trigger level 0   | 0                | 0                 | 0                 | TX reset          | RX reset          | FIFO enable       |
-| `RW-3`         | Line Control (`LCR`)       | DLBA              | Set break         | Force parity     | Even parity       | Parity enable     | Stop bits         | Word length 1     | Word length 0     |
+| `RW-3`         | Line Control (`LCR`)       | DLAB              | Set break         | Force parity     | Even parity       | Parity enable     | Stop bits         | Word length 1     | Word length 0     |
 | `RW-4`         | Modem Control (`MCR`)      | 0                 | 0                 | 0                | Loop back         | Out 2             | Out 1             | RTS               | DTR               |
 | `R-5`          | Line Status (`LSR`)        | FIFO error        | TX empty          | THR empty        | Break interrupt   | Frame error       | Parity error      | Overrun error     | Data ready        |
 | `R-6`          | Modem Status (`MSR`)       | 0                 | 0                 | 0                | 0                 | 0                 | 0                 | 0                 | 0                 |

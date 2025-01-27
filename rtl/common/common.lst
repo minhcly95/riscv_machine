@@ -1,0 +1,10 @@
+${PROJ_DIR}/rtl/common/flope.sv
+${PROJ_DIR}/rtl/common/floper.sv
+${PROJ_DIR}/rtl/common/static_counter.sv
+${PROJ_DIR}/rtl/common/settable_counter.sv
+${PROJ_DIR}/rtl/common/phase_counter.sv
+${PROJ_DIR}/rtl/common/posedge_filter.sv
+${PROJ_DIR}/rtl/common/negedge_filter.sv
+${PROJ_DIR}/rtl/common/fifo_wr.sv
+${PROJ_DIR}/rtl/common/fifo_wr_single.sv
+${PROJ_DIR}/rtl/common/buffer.sv

@@ -1,0 +1,20 @@
+`verilator_config
+
+// Common
+lint_off -rule PINCONNECTEMPTY -file "*/rtl/common/fifo_wr.sv" -match "Cell pin connected by name with empty reference: 'last'"
+
+// Top
+lint_off -rule UNUSEDSIGNAL -file "*/rtl/top/ram.sv" -match "Bits of signal are not used: 'paddr'[1:0]"
+
+// Core
+lint_off -rule UNUSEDSIGNAL -file "*/rtl/core/exec/core_imm_parser.sv" -match "Bits of signal are not used: 'instr'[6:0]"
+lint_off -rule UNUSEDSIGNAL -file "*/rtl/core/core_csr.sv" -match "Bits of signal are not used: 'pc'[1:0]"
+
+// UART
+lint_off -rule PINCONNECTEMPTY -file "*/rtl/uart/uart_tx.sv" -match "Cell pin connected by name with empty reference: 'count'"
+lint_off -rule PINCONNECTEMPTY -file "*/rtl/uart/uart_rx.sv" -match "Cell pin connected by name with empty reference: 'count'"
+lint_off -rule PINCONNECTEMPTY -file "*/rtl/uart/uart_tx_fifo.sv" -match "Cell pin connected by name with empty reference: 'push_cnt'"
+lint_off -rule PINCONNECTEMPTY -file "*/rtl/uart/uart_tx_fifo.sv" -match "Cell pin connected by name with empty reference: 'pop_cnt'"
+lint_off -rule PINCONNECTEMPTY -file "*/rtl/uart/uart_clock_gen.sv" -match "Cell pin connected by name with empty reference: 'count'"
+lint_off -rule PINCONNECTEMPTY -file "*/rtl/uart/uart_rx_timer.sv" -match "Cell pin connected by name with empty reference: 'count'"
+lint_off -rule UNUSEDSIGNAL -file "*/rtl/uart/uart_intc.sv" -match "Bits of signal are not used: 'cfg_int_en'[3]"

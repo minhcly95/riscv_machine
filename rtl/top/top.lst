@@ -1,0 +1,2 @@
+${PROJ_DIR}/rtl/top/ram.sv
+${PROJ_DIR}/rtl/top/top.sv

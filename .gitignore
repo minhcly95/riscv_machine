@@ -4,4 +4,5 @@
 /tb/results.xml
 /tb/dump.fst
 /tb/*.gtkw
+/lint/waive-auto.vlt
 __pycache__/
