@@ -29,3 +29,4 @@ $(ASM_DIR)/%.dump: $(ASM_DIR)/%.o
 clean:
 	rm -f $(ASM_BIN)
 	rm -f $(ASM_OBJ)
+	rm -f $(ASM_DUMP)

@@ -1,8 +1,10 @@
 **.log
 **.bkp
+**.fst
+**.gtkw
+
 /build/
-/tb/results.xml
-/tb/dump.fst
-/tb/*.gtkw
+/tb/*/results.xml
 /lint/waive-auto.vlt
+
 __pycache__/

@@ -12,10 +12,10 @@ waive:
 	verilator --lint-only --no-std --top $(TOP) -Wall -f lint/lint_err.lst lint/waive.vlt -f rtl/rtl.lst --waiver-output lint/waive-auto.vlt |& tee lint/lint.log
 
 sim: asm isa
-	$(MAKE) -C tb
+	$(MAKE) -C tb/top
 
 wave:
-	gtkwave tb/dump.fst
+	gtkwave tb/top/dump.fst
 
 asm:
 	$(MAKE) -C prog/asm asm
@@ -26,11 +26,11 @@ isa:
 clean: clean-lint clean-sim clean-asm clean-isa
 
 clean-lint:
-	rm lint/*.log
+	rm -f lint/*.log
 
 clean-sim:
-	$(MAKE) -C tb clean
-	rm tb/results.xml
+	$(MAKE) -C tb/top clean
+	rm -f tb/top/results.xml
 
 clean-asm:
 	$(MAKE) -C prog/asm clean
