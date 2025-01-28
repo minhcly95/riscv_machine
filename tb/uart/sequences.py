@@ -19,7 +19,6 @@ async def reset_sequence(tb):
 
     await cocotb.start(Clock(tb.clk, clk_period, 'sec').start())
     await ClockCycles(tb.clk, 5)   # Reset for 5 cycles
-    await Timer(1)
     tb.rst_n.value = 1
 
 
@@ -31,13 +30,11 @@ async def apb_write_byte(tb, addr, wdata):
     tb.pwdata.value = wdata << ((addr & 3) * 8)
     tb.pwstrb.value = 1 << (addr & 3)
     await RisingEdge(tb.clk)
-    await Timer(1)
     tb.penable.value = 1
     while True:
         await RisingEdge(tb.clk)
         if tb.pready.value == 1:
             assert tb.pslverr.value == 0
-            await Timer(1)
             tb.psel.value = 0
             tb.penable.value = 0
             return
@@ -50,14 +47,12 @@ async def apb_read_byte(tb, addr):
     tb.paddr.value = addr
     tb.pwstrb.value = 0
     await RisingEdge(tb.clk)
-    await Timer(1)
     tb.penable.value = 1
     while True:
         await RisingEdge(tb.clk)
         if tb.pready.value == 1:
             assert tb.pslverr.value == 0
             rdata = (tb.prdata.value >> ((addr & 3) * 8)) & 0xff
-            await Timer(1)
             tb.psel.value = 0
             tb.penable.value = 0
             return rdata
@@ -89,6 +84,14 @@ async def uart_read(tb, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8, parity_
     return data
 
 
+async def uart_read_str(tb, num, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8, parity_mode=ParityMode.NONE):
+    s = ""
+    for i in range(num):
+        data = await uart_read(tb, baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
+        s += chr(data)
+    return s
+
+
 # UART write
 async def uart_write(tb, data, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8, parity_mode=ParityMode.NONE):
     char_time = round(1 / baud_rate, 9)
@@ -107,6 +110,11 @@ async def uart_write(tb, data, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8, 
     # Stop bit
     tb.rx.value = 1
     await Timer(char_time, 'sec')
+
+
+async def uart_write_str(tb, s, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8, parity_mode=ParityMode.NONE):
+    for c in s:
+        await uart_write(tb, ord(c), baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
 
 
 # Register setup

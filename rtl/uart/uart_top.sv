@@ -90,7 +90,7 @@ module uart_top(
     );
 
     // ---------------- Register file -----------------
-    uart_reg u_uart_reg(
+    uart_reg u_reg(
         .clk                 (clk),
         .rst_n               (rst_n),
         .reg_addr            (reg_addr),

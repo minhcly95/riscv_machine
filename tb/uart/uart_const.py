@@ -14,8 +14,13 @@ class WordLength(Enum):
     WORD_6 = 0b01
     WORD_7 = 0b10
     WORD_8 = 0b11
+
     def length(self):
         return self.value + 5
+
+    def cast_str(self, s):
+        mask = (1 << self.length()) - 1
+        return "".join(chr(ord(c) & mask) for c in s)
 
 
 class StopMode(Enum):
@@ -64,16 +69,27 @@ REG_SPR = 7
 REG_DLL = 0
 REG_DLM = 1
 
-FCR_FIFO_ENABLE = 0x01
+IER_RX_DATA_READY = 0x01
+IER_THR_EMPTY     = 0x02
+IER_RX_LINE_STAT  = 0x04
 
-LCR_DLAB        = 0x80
+ISR_INT_MASK           = 0x0f
+ISR_INT_NONE           = 0b0001
+ISR_INT_RX_LINE_STAT   = 0b0110
+ISR_INT_RX_DATA_READY  = 0b0100
+ISR_INT_RX_TIMEOUT     = 0b1100
+ISR_INT_THR_EMPTY      = 0b0010
 
-LSR_DATA_READY  = 0x01
-LSR_OVERRUN_ERR = 0x02
-LSR_PARITY_ERR  = 0x04
-LSR_FRAME_ERR   = 0x08
-LSR_BREAK_INT   = 0x10
-LSR_THR_EMPTY   = 0x20
-LSR_TX_EMPTY    = 0x40
-LSR_FIFO_ERR    = 0x80
+FCR_FIFO_ENABLE   = 0x01
+
+LCR_DLAB          = 0x80
+
+LSR_DATA_READY    = 0x01
+LSR_OVERRUN_ERR   = 0x02
+LSR_PARITY_ERR    = 0x04
+LSR_FRAME_ERR     = 0x08
+LSR_BREAK_INT     = 0x10
+LSR_THR_EMPTY     = 0x20
+LSR_TX_EMPTY      = 0x40
+LSR_FIFO_ERR      = 0x80
 

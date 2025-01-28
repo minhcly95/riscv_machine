@@ -13,10 +13,15 @@ module uart_intc(
 
     import uart_pkg::*;
 
-    logic final_rx_line_status = int_rx_line_status & cfg_int_en.rx_line_status;
-    logic final_rx_data_ready  = int_rx_data_ready  & cfg_int_en.rx_data_ready;
-    logic final_rx_timeout     = int_rx_timeout     & cfg_int_en.rx_data_ready;
-    logic final_tx_fifo_empty  = int_tx_fifo_empty  & cfg_int_en.thr_empty;
+    logic final_rx_line_status;
+    logic final_rx_data_ready;
+    logic final_rx_timeout;
+    logic final_tx_fifo_empty;
+
+    assign final_rx_line_status = int_rx_line_status & cfg_int_en.rx_line_status;
+    assign final_rx_data_ready  = int_rx_data_ready  & cfg_int_en.rx_data_ready;
+    assign final_rx_timeout     = int_rx_timeout     & cfg_int_en.rx_data_ready;
+    assign final_tx_fifo_empty  = int_tx_fifo_empty  & cfg_int_en.thr_empty;
 
     always_comb begin
         if (final_rx_line_status)     int_code = INT_RX_LINE_STATUS;
