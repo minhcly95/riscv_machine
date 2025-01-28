@@ -1,21 +1,21 @@
 module uart_top(
-    input  logic                 clk,
-    input  logic                 rst_n,
+    input  logic         clk,
+    input  logic         rst_n,
     // APB slave
-    input  logic                 psel,
-    input  logic                 penable,
-    output logic                 pready,
-    input  logic [11:0]          paddr,
-    input  logic                 pwrite,
-    input  logic [31:0]          pwdata,
-    input  logic  [3:0]          pwstrb,
-    output logic [31:0]          prdata,
-    output logic                 pslverr,
+    input  logic         psel,
+    input  logic         penable,
+    output logic         pready,
+    input  logic [11:0]  paddr,
+    input  logic         pwrite,
+    input  logic [31:0]  pwdata,
+    input  logic  [3:0]  pwstrb,
+    output logic [31:0]  prdata,
+    output logic         pslverr,
     // UART I/O
-    output logic                 tx,
-    input  logic                 rx,
+    output logic         tx,
+    input  logic         rx,
     // Interrupt output
-    output logic                 uart_int
+    output logic         uart_int
 );
 
     import uart_pkg::*;

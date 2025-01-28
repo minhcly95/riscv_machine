@@ -13,6 +13,6 @@ COMPILE_ARGS += -f $(LIST_FILE)
 
 EXTRA_ARGS += --trace --trace-fst --trace-structs --timing
 
-SIM_BUILD = $(PROJ_DIR)/build/sim
+SIM_BUILD = $(PROJ_DIR)/build/sim/top
 
 include $(shell cocotb-config --makefiles)/Makefile.sim

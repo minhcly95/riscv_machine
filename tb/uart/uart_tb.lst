@@ -1,0 +1,2 @@
+-f ${PROJ_DIR}/rtl/common/common.lst
+-f ${PROJ_DIR}/rtl/uart/uart.lst

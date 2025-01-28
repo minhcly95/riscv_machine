@@ -79,16 +79,12 @@ module uart_rx(
         start_frame       = 1'b0;
         shift_reg_en      = 1'b0;
         parity_en         = 1'b0;
-        uart_clk_count_en = 1'b1;
         case (curr_state)
-            IDLE: begin
-                start_frame            = falling_edge;
-                uart_clk_count_en      = 1'b0;
-            end
-            DATA:    shift_reg_en      = uart_clk_en;
-            PARITY:  parity_en         = uart_clk_en;
-            STOP:    rx_valid          = uart_clk_en;
-            default: uart_clk_count_en = 1'b0;
+            IDLE:   start_frame  = falling_edge;
+            DATA:   shift_reg_en = uart_clk_en;
+            PARITY: parity_en    = uart_clk_en;
+            STOP:   rx_valid     = uart_clk_en;
+            default: ;
         endcase
     end
 
@@ -101,6 +97,16 @@ module uart_rx(
     );
 
     // -------------- UART clock control --------------
+    always_comb begin
+        case (curr_state)
+            START,
+            DATA,
+            PARITY,
+            STOP:    uart_clk_count_en = 1'b1;
+            default: uart_clk_count_en = 1'b0;
+        endcase
+    end
+
     // We set the first count to 7 to align the sample time
     // at the center of a bit.
     settable_counter #(
@@ -113,7 +119,7 @@ module uart_rx(
         .clk        (clk),
         .rst_n      (rst_n),
         .srst       (1'b0),
-        .en         (uart_clk_count_en),
+        .en         (div_clk_en & uart_clk_count_en),
         .count      (),
         .last       (uart_clk_last),
         .set_valid  (start_frame),

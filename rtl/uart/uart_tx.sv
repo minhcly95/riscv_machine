@@ -77,18 +77,16 @@ module uart_tx(
     end
 
     always_comb begin
-        tx_ready          = 1'b0;
-        start_frame       = 1'b0;
-        shift_reg_en      = 1'b0;
-        uart_clk_count_en = 1'b1;
+        tx_ready     = 1'b0;
+        start_frame  = 1'b0;
+        shift_reg_en = 1'b0;
         case (curr_state)
             IDLE: begin
-                tx_ready               = 1'b1;
-                start_frame            = tx_valid;
-                uart_clk_count_en      = 1'b0;
+                tx_ready       = 1'b1;
+                start_frame    = tx_valid;
             end
-            DATA:    shift_reg_en      = uart_clk_en;
-            default: uart_clk_count_en = 1'b0;
+            DATA: shift_reg_en = uart_clk_en;
+            default: ;
         endcase
     end
 
@@ -109,6 +107,17 @@ module uart_tx(
     end
 
     // -------------- UART clock control --------------
+    always_comb begin
+        case (curr_state)
+            START,
+            DATA,
+            PARITY,
+            STOP_1,
+            STOP_2:  uart_clk_count_en = 1'b1;
+            default: uart_clk_count_en = 1'b0;
+        endcase
+    end
+
     static_counter #(
         .WIDTH   (4),
         .END     (15)
@@ -116,7 +125,7 @@ module uart_tx(
         .clk     (clk),
         .rst_n   (rst_n),
         .srst    (1'b0),
-        .en      (uart_clk_count_en),
+        .en      (div_clk_en & uart_clk_count_en),
         .count   (),
         .last    (uart_clk_last)
     );
