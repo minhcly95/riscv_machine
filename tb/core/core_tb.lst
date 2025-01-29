@@ -1,0 +1,4 @@
+-f ${PROJ_DIR}/rtl/common/common.lst
+-f ${PROJ_DIR}/rtl/core/core.lst
+${PROJ_DIR}/rtl/top/ram.sv
+${PROJ_DIR}/tb/core/core_tb_top.sv

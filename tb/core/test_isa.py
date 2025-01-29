@@ -11,23 +11,21 @@ TO_HOST_ADDR = 0x1000
 
 
 async def test_isa(tb, test_name):
-    dut = tb.u_top
-
     # Start the reset sequence
     cocotb.start_soon(reset_sequence(tb))
 
     # Backdoor some instructions
-    utils.load_bin_to_ram(dut, f"{PROJ_DIR}/build/isa/{test_name}.bin")
+    utils.load_bin_to_ram(tb, f"{PROJ_DIR}/build/isa/{test_name}.bin")
 
     # Poll the mem at 0x1000 for changes
     for poll in range(MAX_POLL):
-        await ClockCycles(dut.clk, POLL_CLK)
-        if utils.ram(dut, TO_HOST_ADDR).value != 0:
+        await ClockCycles(tb.clk, POLL_CLK)
+        if utils.ram(tb, TO_HOST_ADDR).value != 0:
             break
 
     # Check the final result in mem at 0x1000
     # A value of 1 means pass, > 1 means fail
-    assert utils.ram(dut, TO_HOST_ADDR).value == 1
+    assert utils.ram(tb, TO_HOST_ADDR).value == 1
 
 
 # Read the list of tests in a file, then generate the test code

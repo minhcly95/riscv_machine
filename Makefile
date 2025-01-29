@@ -1,4 +1,7 @@
-.PHONY: lint waive run run-uart sim sim-uart wave wave-uart asm isa clean clean-lint clean-sim clean-sim-uart clean-asm clean-isa
+SCOPES            = core uart
+CLEAN_SIM_TARGETS = $(addprefix clean-sim-,$(SCOPES))
+
+.PHONY: lint waive run sim wave asm isa clean clean-lint clean-sim clean-asm clean-isa
 
 PROJ_DIR ?= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 export PROJ_DIR
@@ -11,25 +14,13 @@ lint:
 waive:
 	verilator --lint-only --no-std --top $(TOP) -Wall -f lint/lint_err.lst lint/waive.vlt -f rtl/rtl.lst --waiver-output lint/waive-auto.vlt |& tee lint/lint.log
 
-run: asm isa
-	$(MAKE) -C tb/top
+run: run-core
 
-run-uart:
-	$(MAKE) -C tb/uart
+run-core: asm isa
 
-sim:
-	$(MAKE) clean-sim
-	$(MAKE) run
+sim: sim-core
 
-sim-uart:
-	$(MAKE) clean-sim-uart
-	$(MAKE) run-uart
-
-wave:
-	gtkwave tb/top/dump.fst
-
-wave-uart:
-	gtkwave tb/uart/dump.fst
+wave: wave-core
 
 asm:
 	$(MAKE) -C prog/asm asm
@@ -37,21 +28,38 @@ asm:
 isa:
 	$(MAKE) -C prog/isa isa
 
-clean: clean-lint clean-sim clean-sim-uart clean-asm clean-isa
+clean: clean-lint clean-sim clean-asm clean-isa
 
 clean-lint:
 	rm -f lint/*.log
 
-clean-sim:
-	$(MAKE) -C tb/top clean
-	rm -f tb/top/results.xml
-
-clean-sim-uart:
-	$(MAKE) -C tb/uart clean
-	rm -f tb/uart/results.xml
+clean-sim: $(CLEAN_SIM_TARGETS)
 
 clean-asm:
 	$(MAKE) -C prog/asm clean
 
 clean-isa:
 	$(MAKE) -C prog/isa clean
+
+
+# Generated rules
+define GENERATE_RULE
+.PHONY: run-$(1) sim-$(1) wave-$(1) clean-sim-$(1)
+
+run-$(1):
+	$(MAKE) -C tb/$(1)
+
+sim-$(1):
+	$(MAKE) clean-sim-$(1)
+	$(MAKE) run-$(1)
+
+wave-$(1):
+	gtkwave tb/$(1)/dump.fst
+
+clean-sim-$(1):
+	$(MAKE) -C tb/$(1) clean
+	rm -f tb/$(1)/results.xml
+endef
+
+$(foreach scope,$(SCOPES),$(eval $(call GENERATE_RULE,$(scope))))
+
