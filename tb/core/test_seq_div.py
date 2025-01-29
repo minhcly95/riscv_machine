@@ -1,5 +1,6 @@
 import os, random, cocotb
 import utils
+from ram import Ram
 from sequences import reset_sequence
 
 
@@ -20,7 +21,8 @@ async def test_seq_div(tb):
     cocotb.start_soon(reset_sequence(tb))
 
     # Backdoor some instructions
-    utils.load_bin_to_ram(tb, f"{PROJ_DIR}/build/asm/seq_div.bin")
+    ram = Ram(tb.u_ram)
+    ram.load_bin(f"{PROJ_DIR}/build/asm/seq_div.bin")
 
     # Backdoor the parameters
     all_ab = []
@@ -28,8 +30,8 @@ async def test_seq_div(tb):
         a = random.randint(0, 2**32 - 1)
         b = random.randint(0, 2**32 - 1)
         all_ab.append((a, b))
-        utils.ram(tb, BASE_A + (i << 2)).value = a
-        utils.ram(tb, BASE_B + (i << 2)).value = b
+        ram.at(BASE_A + (i << 2)).value = a
+        ram.at(BASE_B + (i << 2)).value = b
 
     # Wait for ecall or max cycles
     await utils.wait_ecall(tb, MAX_CLK)
@@ -40,10 +42,10 @@ async def test_seq_div(tb):
         sb = (b - 2**32) if b >= 2**31 else b
         div,  rem  = sdiv_model(sa, sb)
         divu, remu = udiv_model(a, b)
-        assert utils.ram(tb, BASE_DIV  + (i << 2)).value.signed_integer == div
-        assert utils.ram(tb, BASE_DIVU + (i << 2)).value                == divu
-        assert utils.ram(tb, BASE_REM  + (i << 2)).value.signed_integer == rem
-        assert utils.ram(tb, BASE_REMU + (i << 2)).value                == remu
+        assert ram.at(BASE_DIV  + (i << 2)).value.signed_integer == div
+        assert ram.at(BASE_DIVU + (i << 2)).value                == divu
+        assert ram.at(BASE_REM  + (i << 2)).value.signed_integer == rem
+        assert ram.at(BASE_REMU + (i << 2)).value                == remu
 
 
 def udiv_model(a, b):

@@ -1,7 +1,7 @@
 import os, random, cocotb
 from cocotb.triggers import *
 from sequences import *
-from uart_const import *
+from uart import *
 
 
 MSG = "Vivamus convallis enim a erat euismod, quis convallis sapien iaculis."

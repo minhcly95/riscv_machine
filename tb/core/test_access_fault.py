@@ -1,5 +1,6 @@
 import os, random, cocotb
 import utils
+from ram import Ram
 from sequences import reset_sequence
 
 
@@ -15,13 +16,14 @@ async def test_access_fault(tb):
     cocotb.start_soon(reset_sequence(tb))
 
     # Backdoor some instructions
-    utils.load_bin_to_ram(tb, f"{PROJ_DIR}/build/asm/access_fault.bin")
+    ram = Ram(tb.u_ram)
+    ram.load_bin(f"{PROJ_DIR}/build/asm/access_fault.bin")
 
     # Wait for ecall or max cycles
     await utils.wait_ecall(tb, MAX_CLK)
 
     # Check the results
     for (i, code) in enumerate(CODE_SEQ):
-        assert utils.ram(tb, BASE_DATA + 8*i).value     == i + 1, f"Result {i+1} did not exist"
-        assert utils.ram(tb, BASE_DATA + 8*i + 4).value == code,  f"Test {i+1} failed"
+        assert ram.at(BASE_DATA + 8*i).value     == i + 1, f"Result {i+1} did not exist"
+        assert ram.at(BASE_DATA + 8*i + 4).value == code,  f"Test {i+1} failed"
 

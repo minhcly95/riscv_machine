@@ -6,6 +6,9 @@ CLEAN_SIM_TARGETS = $(addprefix clean-sim-,$(SCOPES))
 PROJ_DIR ?= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 export PROJ_DIR
 
+PYTHONPATH += :$(PROJ_DIR)/tb/common
+export PYTHONPATH
+
 TOP ?= top
 
 lint:

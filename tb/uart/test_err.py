@@ -2,7 +2,7 @@ import os, random, cocotb
 from cocotb.regression import TestFactory
 from cocotb.triggers import *
 from sequences import *
-from uart_const import *
+from uart import *
 
 
 async def wait_for_line_stat(tb):
@@ -29,8 +29,9 @@ async def test_overrun_err(tb, fifo_enable=False):
 
     # Transmit 2 characters with no read (17 if FIFO is enabled)
     async def send_data():
+        uart = Uart(tb)
         for _ in range(17 if fifo_enable else 2):
-            await uart_write(tb, random.randint(0, 255))
+            await uart.write(random.randint(0, 255))
 
     cocotb.start_soon(send_data())
 
@@ -62,7 +63,8 @@ async def test_parity_err(tb, parity_mode=ParityMode.ODD):
 
     # Transmit the message
     data = random.randint(0, 255)
-    cocotb.start_soon(uart_write(tb, data, parity_mode=parity_mode, flip_parity=True))
+    uart = Uart(tb, parity_mode=parity_mode)
+    cocotb.start_soon(uart.write(data, flip_parity=True))
 
     # Wait for RX_LINE_STAT interrupt
     await wait_for_line_stat(tb)
@@ -87,7 +89,8 @@ async def test_frame_err(tb):
 
     # Transmit the message
     data = random.randint(0, 255)
-    cocotb.start_soon(uart_write(tb, data, flip_stop=True))
+    uart = Uart(tb)
+    cocotb.start_soon(uart.write(data, flip_stop=True))
 
     # Wait for RX_LINE_STAT interrupt
     await wait_for_line_stat(tb)
@@ -138,7 +141,8 @@ async def test_fifo_err(tb):
 
     # Transmit the message
     data = random.randint(0, 255)
-    cocotb.start_soon(uart_write(tb, data, flip_stop=True))
+    uart = Uart(tb)
+    cocotb.start_soon(uart.write(data, flip_stop=True))
 
     # Wait for interrupt
     if tb.uart_int.value == 0:

@@ -1,6 +1,6 @@
 from cocotb.triggers import *
 from cocotb.clock import Clock
-from uart_const import *
+from uart import *
 
 
 BAUD_RATE = 115200
@@ -56,70 +56,6 @@ async def apb_read_byte(tb, addr):
             tb.psel.value = 0
             tb.penable.value = 0
             return rdata
-
-
-# UART read
-async def uart_read(tb, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8, parity_mode=ParityMode.NONE):
-    char_time = round(1 / baud_rate, 9)
-    # Wait for start bit
-    await FallingEdge(tb.tx)
-    # Align to the center of a character
-    await Timer(char_time / 2, 'sec')
-    # Verify the start bit
-    assert tb.tx.value == 0, "Start bit is not zero"
-    # Read the data bits
-    data = 0
-    for i in range(word_len.length()):
-        await Timer(char_time, 'sec')
-        data |= (tb.tx.value << i)
-    # Verify the parity bit
-    parity_gen = parity_mode.gen(data)
-    if parity_gen != None:
-        await Timer(char_time, 'sec')
-        assert tb.tx.value == parity_gen, "Parity does not match"
-    # Verify the stop bit
-    await Timer(char_time, 'sec')
-    assert tb.tx.value == 1, "Stop bit is not one"
-    # Return the data
-    return data
-
-
-async def uart_read_str(tb, num, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8, parity_mode=ParityMode.NONE):
-    s = ""
-    for i in range(num):
-        data = await uart_read(tb, baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
-        s += chr(data)
-    return s
-
-
-# UART write
-async def uart_write(tb, data,
-                     baud_rate=BAUD_RATE,
-                     word_len=WordLength.WORD_8,
-                     parity_mode=ParityMode.NONE,
-                     flip_parity=False,
-                     flip_stop=False):
-    char_time = round(1 / baud_rate, 9)
-    # Start bit
-    tb.rx.value = 0
-    await Timer(char_time, 'sec')
-    # Data bits
-    for i in range(word_len.length()):
-        tb.rx.value = (data >> i) & 1;
-        await Timer(char_time, 'sec')
-    # Parity bit
-    parity_gen = parity_mode.gen(data)
-    if parity_gen != None:
-        tb.rx.value = parity_gen ^ flip_parity
-        await Timer(char_time, 'sec')
-    # Stop bit
-    tb.rx.value = 1 if not flip_stop else 0
-    await Timer(char_time, 'sec')
-
-
-async def uart_write_str(tb, s, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8, parity_mode=ParityMode.NONE):
-    for c in s:
-        await uart_write(tb, ord(c), baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
 
 
 # Register setup

@@ -1,5 +1,6 @@
 import os, cocotb
 import utils
+from ram import Ram
 from sequences import reset_sequence
 
 
@@ -14,7 +15,8 @@ async def test_fibonacci(tb):
     cocotb.start_soon(reset_sequence(tb))
 
     # Backdoor some instructions
-    utils.load_bin_to_ram(tb, f"{PROJ_DIR}/build/asm/fibonacci.bin")
+    ram = Ram(tb.u_ram)
+    ram.load_bin(f"{PROJ_DIR}/build/asm/fibonacci.bin")
 
     # Wait for ecall or max cycles
     await utils.wait_ecall(tb, MAX_CLK)
@@ -25,5 +27,5 @@ async def test_fibonacci(tb):
             # Convert to int
             number = int(line)
             # Compare with the value in RAM
-            assert utils.ram(tb, BASE_RES + (i << 2)).value == number
+            assert ram.at(BASE_RES + (i << 2)).value == number
 

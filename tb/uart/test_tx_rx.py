@@ -1,7 +1,7 @@
 import os, random, cocotb
 from cocotb.regression import TestFactory
 from sequences import *
-from uart_const import *
+from uart import *
 
 
 MSG = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
@@ -20,7 +20,8 @@ async def test_tx(tb, fifo_enable=False, baud_rate=115200, word_len=WordLength.W
     cocotb.start_soon(send_str(tb, MSG))
 
     # Read the message from UART
-    tx_msg = await uart_read_str(tb, len(MSG), baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
+    uart = Uart(tb, baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
+    tx_msg = await uart.read_str(len(MSG))
 
     # Verify the message
     assert tx_msg == word_len.cast_str(MSG)
@@ -36,7 +37,8 @@ async def test_rx(tb, fifo_enable=False, baud_rate=115200, word_len=WordLength.W
         await fifo_setup(tb, enable=True)
 
     # Transmit the message
-    cocotb.start_soon(uart_write_str(tb, MSG, baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode))
+    uart = Uart(tb, baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
+    cocotb.start_soon(uart.write_str(MSG))
 
     # Read the message from register
     rx_msg = await recv_str(tb, len(MSG))

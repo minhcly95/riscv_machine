@@ -1,5 +1,6 @@
 import os, random, cocotb
 import utils
+from ram import Ram
 from sequences import reset_sequence
 
 
@@ -20,7 +21,8 @@ async def test_seq_mul(tb):
     cocotb.start_soon(reset_sequence(tb))
 
     # Backdoor some instructions
-    utils.load_bin_to_ram(tb, f"{PROJ_DIR}/build/asm/seq_mul.bin")
+    ram = Ram(tb.u_ram)
+    ram.load_bin(f"{PROJ_DIR}/build/asm/seq_mul.bin")
 
     # Backdoor the multiplicands
     all_ab = []
@@ -28,8 +30,8 @@ async def test_seq_mul(tb):
         a = random.randint(0, 2**32 - 1)
         b = random.randint(0, 2**32 - 1)
         all_ab.append((a, b))
-        utils.ram(tb, BASE_A + (i << 2)).value = a
-        utils.ram(tb, BASE_B + (i << 2)).value = b
+        ram.at(BASE_A + (i << 2)).value = a
+        ram.at(BASE_B + (i << 2)).value = b
 
     # Wait for ecall or max cycles
     await utils.wait_ecall(tb, MAX_CLK)
@@ -41,8 +43,8 @@ async def test_seq_mul(tb):
         muluu = a  * b
         mulsu = sa * b
         mulss = sa * sb
-        assert utils.ram(tb, BASE_MUL    + (i << 2)).value                == muluu & 0xffffffff
-        assert utils.ram(tb, BASE_MULH   + (i << 2)).value.signed_integer == mulss >> 32
-        assert utils.ram(tb, BASE_MULHSU + (i << 2)).value.signed_integer == mulsu >> 32
-        assert utils.ram(tb, BASE_MULHU  + (i << 2)).value                == muluu >> 32
+        assert ram.at(BASE_MUL    + (i << 2)).value                == muluu & 0xffffffff
+        assert ram.at(BASE_MULH   + (i << 2)).value.signed_integer == mulss >> 32
+        assert ram.at(BASE_MULHSU + (i << 2)).value.signed_integer == mulsu >> 32
+        assert ram.at(BASE_MULHU  + (i << 2)).value                == muluu >> 32
 

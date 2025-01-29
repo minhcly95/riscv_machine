@@ -1,7 +1,7 @@
 import os, random, cocotb
 from cocotb.triggers import *
 from sequences import *
-from uart_const import *
+from uart import *
 
 
 MSG = "Ut at convallis arcu, vitae tempus purus. Integer eget commodo metus."
@@ -37,7 +37,8 @@ async def test_tx_int(tb):
     cocotb.start_soon(send_msg(tb, MSG))
 
     # Read the message from UART
-    tx_msg = await uart_read_str(tb, len(MSG))
+    uart = Uart(tb)
+    tx_msg = await uart.read_str(len(MSG))
 
     # Verify the message
     assert tx_msg == MSG
@@ -53,7 +54,8 @@ async def test_rx_int(tb):
     await apb_write_byte(tb, REG_IER, IER_RX_DATA_READY)
 
     # Transmit the message
-    cocotb.start_soon(uart_write_str(tb, MSG))
+    uart = Uart(tb)
+    cocotb.start_soon(uart.write_str(MSG))
 
     # Read the message from register
     rx_msg = ""
@@ -103,7 +105,8 @@ async def test_tx_int_fifo(tb):
     cocotb.start_soon(send_msg(tb, MSG))
 
     # Read the message from UART
-    tx_msg = await uart_read_str(tb, len(MSG))
+    uart = Uart(tb)
+    tx_msg = await uart.read_str(len(MSG))
 
     # Verify the message
     assert tx_msg == MSG
@@ -120,7 +123,8 @@ async def test_rx_int_fifo(tb):
     await apb_write_byte(tb, REG_IER, IER_RX_DATA_READY)
 
     # Transmit the message
-    cocotb.start_soon(uart_write_str(tb, MSG))
+    uart = Uart(tb)
+    cocotb.start_soon(uart.write_str(MSG))
 
     # Read the message from register
     rx_msg = ""
