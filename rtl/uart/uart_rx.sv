@@ -183,7 +183,7 @@ module uart_rx(
             if (cfg_force_parity)
                 parity_err <= (rx == cfg_even_parity);
             else
-                parity_err <= (rx == parity_acc);
+                parity_err <= (rx != parity_acc);
         end
     end
 

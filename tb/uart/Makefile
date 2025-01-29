@@ -5,7 +5,7 @@ LIST_FILE ?= $(PROJ_DIR)/tb/uart/uart_tb.lst
 
 TOPLEVEL = uart_top
 
-MODULE ?= test_tx_rx,test_int,test_loopback
+MODULE ?= test_tx_rx,test_int,test_loopback,test_err
 
 COMPILE_ARGS += -f $(LIST_FILE)
 

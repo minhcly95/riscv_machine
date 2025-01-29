@@ -93,7 +93,12 @@ async def uart_read_str(tb, num, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8
 
 
 # UART write
-async def uart_write(tb, data, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8, parity_mode=ParityMode.NONE):
+async def uart_write(tb, data,
+                     baud_rate=BAUD_RATE,
+                     word_len=WordLength.WORD_8,
+                     parity_mode=ParityMode.NONE,
+                     flip_parity=False,
+                     flip_stop=False):
     char_time = round(1 / baud_rate, 9)
     # Start bit
     tb.rx.value = 0
@@ -105,10 +110,10 @@ async def uart_write(tb, data, baud_rate=BAUD_RATE, word_len=WordLength.WORD_8, 
     # Parity bit
     parity_gen = parity_mode.gen(data)
     if parity_gen != None:
-        tb.rx.value = parity_gen
+        tb.rx.value = parity_gen ^ flip_parity
         await Timer(char_time, 'sec')
     # Stop bit
-    tb.rx.value = 1
+    tb.rx.value = 1 if not flip_stop else 0
     await Timer(char_time, 'sec')
 
 
