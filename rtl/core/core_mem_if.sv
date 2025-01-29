@@ -37,9 +37,9 @@ module core_mem_if (
 
     // PENABLE flop
     always_ff @(posedge clk or negedge rst_n) begin
-        if (~rst_n)      penable <= 1'b0;
-        else if (pready) penable <= 1'b0;
-        else             penable <= psel;
+        if (~rst_n)                       penable <= 1'b0;
+        else if (psel & penable & pready) penable <= 1'b0;
+        else                              penable <= psel;
     end
 
     // APB request

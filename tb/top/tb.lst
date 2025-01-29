@@ -1,0 +1,2 @@
+-f ${PROJ_DIR}/rtl/rtl.lst
+${PROJ_DIR}/tb/top/tb_top.sv

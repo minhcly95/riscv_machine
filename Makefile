@@ -1,7 +1,9 @@
-SCOPES            = core uart
+SCOPES            = top core uart
+SIM_TARGETS       = $(addprefix sim-,$(SCOPES))
+RUN_TARGETS       = $(addprefix run-,$(SCOPES))
 CLEAN_SIM_TARGETS = $(addprefix clean-sim-,$(SCOPES))
 
-.PHONY: lint waive run sim wave asm isa clean clean-lint clean-sim clean-asm clean-isa
+.PHONY: lint waive run sim asm isa clean clean-lint clean-sim clean-asm clean-isa
 
 PROJ_DIR ?= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 export PROJ_DIR
@@ -17,13 +19,17 @@ lint:
 waive:
 	verilator --lint-only --no-std --top $(TOP) -Wall -f lint/lint_err.lst lint/waive.vlt -f rtl/rtl.lst --waiver-output lint/waive-auto.vlt |& tee lint/lint.log
 
-run: run-core
+run:
+	$(MAKE) run-core
+	$(MAKE) run-uart
+	$(MAKE) run-top
+
+run-top: asm
 
 run-core: asm isa
 
-sim: sim-core
-
-wave: wave-core
+sim: clean-sim
+	$(MAKE) run
 
 asm:
 	$(MAKE) -C prog/asm asm
