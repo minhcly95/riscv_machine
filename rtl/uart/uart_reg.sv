@@ -37,7 +37,8 @@ module uart_reg(
     output logic                  cfg_tx_reset,
     output uart_pkg::fifo_trig_e  cfg_fifo_trig,
     output logic [15:0]           cfg_div_const,
-    output uart_pkg::int_en_s     cfg_int_en
+    output uart_pkg::int_en_s     cfg_int_en,
+    output logic                  cfg_loopback
 );
 
     import uart_pkg::*;
@@ -278,5 +279,6 @@ module uart_reg(
     assign cfg_fifo_trig    = fcr_fifo_trig;
     assign cfg_div_const    = {dlm_value, dll_value};
     assign cfg_int_en       = ier_value;
+    assign cfg_loopback     = mcr_loopback;
 
 endmodule

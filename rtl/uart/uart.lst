@@ -7,6 +7,7 @@ ${PROJ_DIR}/rtl/uart/uart_rx_fifo.sv
 ${PROJ_DIR}/rtl/uart/uart_clock_gen.sv
 ${PROJ_DIR}/rtl/uart/uart_intc.sv
 ${PROJ_DIR}/rtl/uart/uart_rx_timer.sv
+${PROJ_DIR}/rtl/uart/uart_loopback.sv
 ${PROJ_DIR}/rtl/uart/uart_reg.sv
 ${PROJ_DIR}/rtl/uart/uart_apb.sv
 ${PROJ_DIR}/rtl/uart/uart_top.sv

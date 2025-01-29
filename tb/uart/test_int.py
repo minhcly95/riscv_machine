@@ -147,14 +147,7 @@ async def test_rx_int_fifo(tb):
         await ClockCycles(tb.clk, 1)
 
     # Get all the remaining characters in FIFO
-    while True:
-        lsr = await apb_read_byte(tb, REG_LSR)
-        data_ready = (lsr & LSR_DATA_READY) != 0
-        if (data_ready):
-            data = await apb_read_byte(tb, REG_RHR)
-            rx_msg += chr(data)
-        else:
-            break
+    rx_msg += await recv_str(tb, len(MSG), poll=False)
 
     # Verify the message
     assert rx_msg == MSG

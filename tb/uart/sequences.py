@@ -155,7 +155,7 @@ async def send_str(tb, s):
 
 
 # Read a character
-async def recv_char(tb):
+async def recv_char(tb, poll=True):
     while True:
         lsr = await apb_read_byte(tb, REG_LSR)
         data_ready = (lsr & LSR_DATA_READY) != 0
@@ -163,13 +163,19 @@ async def recv_char(tb):
             data = await apb_read_byte(tb, REG_RHR)
             return chr(data)
         else:
+            if not poll:
+                return None
             await ClockCycles(tb.clk, POLL_INTV)
 
 
 # Read a string
-async def recv_str(tb, num):
+async def recv_str(tb, num, poll=True):
     s = ""
     for i in range(num):
-        s += await recv_char(tb)
+        c = await recv_char(tb, poll=poll)
+        if c == None:
+            return s
+        else:
+            s += c
     return s
 

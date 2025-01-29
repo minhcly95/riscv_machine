@@ -56,6 +56,9 @@ module uart_top(
     logic         int_tx_fifo_empty;
     // RX timer
     logic         rd_rhr;
+    // Loopback
+    logic         in_tx;
+    logic         in_rx;
     // Configurations
     word_len_e    cfg_word_len;
     logic         cfg_stop_bit;
@@ -69,6 +72,7 @@ module uart_top(
     fifo_trig_e   cfg_fifo_trig;
     logic [15:0]  cfg_div_const;
     int_en_s      cfg_int_en;
+    logic         cfg_loopback;
 
     // ---------------- APB interface -----------------
     uart_apb u_apb(
@@ -123,14 +127,15 @@ module uart_top(
         .cfg_tx_reset        (cfg_tx_reset),
         .cfg_fifo_trig       (cfg_fifo_trig),
         .cfg_div_const       (cfg_div_const),
-        .cfg_int_en          (cfg_int_en)
+        .cfg_int_en          (cfg_int_en),
+        .cfg_loopback        (cfg_loopback)
     );
 
     // ---------------------- TX ----------------------
     uart_tx u_tx(
         .clk               (clk),
         .rst_n             (rst_n),
-        .tx                (tx),
+        .tx                (in_tx),
         .div_clk_en        (div_clk_en),
         .tx_valid          (tx_valid),
         .tx_ready          (tx_ready),
@@ -161,7 +166,7 @@ module uart_top(
     uart_rx u_rx(
         .clk               (clk),
         .rst_n             (rst_n),
-        .rx                (rx),
+        .rx                (in_rx),
         .div_clk_en        (div_clk_en),
         .rx_valid          (rx_valid),
         .rx_data           (rx_data),
@@ -225,6 +230,15 @@ module uart_top(
         .cfg_stop_bit     (cfg_stop_bit),
         .cfg_parity_en    (cfg_parity_en),
         .cfg_fifo_enable  (cfg_fifo_enable)
+    );
+
+    // ------------------- Loopback -------------------
+    uart_loopback u_loopback(
+        .in_tx         (in_tx),
+        .in_rx         (in_rx),
+        .out_tx        (tx),
+        .out_rx        (rx),
+        .cfg_loopback  (cfg_loopback)
     );
 
 endmodule
