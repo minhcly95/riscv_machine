@@ -1,18 +1,19 @@
 // A simple memory model with APB interface
 module ram #(
-    parameter  RAM_SIZE = 32'h0010_0000     // RAM size in bytes
+    parameter  RAM_SIZE = 32'h0010_0000,    // RAM size in bytes
+    parameter  ADDR_W   = 32
 )(
-    input  logic         clk,
+    input  logic               clk,
     // APB slave
-    input  logic         psel,
-    input  logic         penable,
-    output logic         pready,
-    input  logic [31:0]  paddr,
-    input  logic         pwrite,
-    input  logic [31:0]  pwdata,
-    input  logic  [3:0]  pwstrb,
-    output logic [31:0]  prdata,
-    output logic         pslverr
+    input  logic               psel,
+    input  logic               penable,
+    output logic               pready,
+    input  logic [ADDR_W-1:0]  paddr,
+    input  logic               pwrite,
+    input  logic [31:0]        pwdata,
+    input  logic [3:0]         pwstrb,
+    output logic [31:0]        prdata,
+    output logic               pslverr
 );
 
     localparam WORD_SIZE   = 4;                     // One word in 4 bytes
@@ -27,7 +28,7 @@ module ram #(
     assign pready = psel & penable;
 
     // Word address
-    assign word_addr = WORD_CNT_BW'(paddr[31:2]);
+    assign word_addr = WORD_CNT_BW'(paddr[ADDR_W-1:2]);
 
     // Write interface
     always_ff @(posedge clk) begin
@@ -43,6 +44,6 @@ module ram #(
     assign prdata = mem_array[word_addr];
 
     // Error when out-of-range
-    assign pslverr = |paddr[31:RAM_SIZE_BW];
+    assign pslverr = |paddr[ADDR_W-1:RAM_SIZE_BW];
 
 endmodule

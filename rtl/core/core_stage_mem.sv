@@ -1,5 +1,3 @@
-// Misaligned access is not allowed
-// D-mem requests must be 4B-aligned
 module core_stage_mem (
     input  logic                 clk,
     input  logic                 rst_n,
@@ -42,8 +40,8 @@ module core_stage_mem (
     assign mem_stage_ready = dmem_ready;
     assign mem_done        = mem_stage_valid & mem_stage_ready;
 
-    // D-mem address (must be 4B-aligned)
-    assign dmem_addr = {mem_addr[31:2], 2'b0};
+    // D-mem address
+    assign dmem_addr = mem_addr;
 
     // D-mem direction
     assign dmem_write = (mem_dir == MEM_WRITE);
