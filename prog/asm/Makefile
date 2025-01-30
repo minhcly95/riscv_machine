@@ -12,7 +12,7 @@ GCC_OPTS ?= -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles
 
 asm: $(ASM_BIN) $(ASM_DUMP)
 
-$(ASM_BIN): | $(ASM_DIR)
+$(ASM_BIN) $(ASM_OBJ) $(ASM_DUMP): | $(ASM_DIR)
 
 $(ASM_DIR):
 	mkdir -p $(ASM_DIR)

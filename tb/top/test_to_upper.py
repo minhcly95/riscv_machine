@@ -17,13 +17,13 @@ MSG = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam vel nulla 
 
 
 @cocotb.test(timeout_time=100, timeout_unit="ms")
-async def test_echo(tb):
+async def test_to_upper(tb):
     # Start the reset sequence
     await reset_sequence(tb)
 
     # Backdoor some instructions
     ram = Ram(tb.dut.u_ram)
-    ram.load_bin(f"{PROJ_DIR}/build/asm/echo.bin")
+    ram.load_bin(f"{PROJ_DIR}/build/c/to_upper.bin")
 
     # Wait for CPU setup
     await ClockCycles(tb.clk, 100)
@@ -36,5 +36,5 @@ async def test_echo(tb):
     tx_msg = await uart.read_str(len(MSG))
 
     # Verify the message
-    assert tx_msg == MSG
+    assert tx_msg == MSG.upper()
 
