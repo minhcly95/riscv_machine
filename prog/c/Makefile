@@ -1,6 +1,6 @@
 TARGET ?= riscv32-unknown-linux-gnu
 
-PROGS     = to_upper
+PROGS     = to_upper demo_echo
 PROG_DIR = $(PROJ_DIR)/build/c
 PROG_BIN  = $(addprefix $(PROG_DIR)/,$(addsuffix .bin,$(PROGS)))
 PROG_OBJ  = $(addprefix $(PROG_DIR)/,$(addsuffix .o,$(PROGS)))
@@ -18,6 +18,8 @@ $(PROG_DIR):
 	mkdir -p $(PROG_DIR)
 
 $(PROG_DIR)/to_upper.o: to_upper.c uart.c
+
+$(PROG_DIR)/demo_echo.o: demo_echo.c uart.c
 
 $(PROG_DIR)/%.bin: $(PROG_DIR)/%.o
 	$(TARGET)-objcopy -j .text -O binary $< $@

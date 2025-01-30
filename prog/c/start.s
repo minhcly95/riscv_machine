@@ -5,7 +5,9 @@ _start:
     # Set stack pointer
     la  sp, __stack_start
     # Jump to main
-    j   main
+    jal main
+    # If main returns, we call the environment
+    ecall
 _end:
-    # If main returns, we loop here forever
+    # If ecall returns, loop here forever
     j   _end

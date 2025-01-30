@@ -1,3 +1,5 @@
+TRACE_ARGS = --trace --trace-fst --trace-structs
+
 SIM ?= verilator
 TOPLEVEL_LANG ?= verilog
 
@@ -7,9 +9,13 @@ TOPLEVEL = tb_top
 
 MODULE ?= test_echo,test_to_upper
 
-COMPILE_ARGS += -f $(LIST_FILE)
+COMPILE_ARGS += -f $(LIST_FILE) $(TRACE_ARGS)
 
-EXTRA_ARGS += --trace --trace-fst --trace-structs --timing
+EXTRA_ARGS += --timing
+
+ifeq ($(WAVE),1)
+	SIM_ARGS += $(TRACE_ARGS)
+endif
 
 SIM_BUILD = $(PROJ_DIR)/build/sim/top
 

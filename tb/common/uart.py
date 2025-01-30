@@ -1,5 +1,9 @@
+import os, cocotb
 from enum import Enum
 from cocotb.triggers import *
+
+
+PTY_POLL_TIME = 1000  # In sim microseconds
 
 
 # Utilities
@@ -162,7 +166,47 @@ class Uart:
 
 
     async def write_str(self, s):
-        for c in s:
-            await self.write(ord(c))
+        if isinstance(s, bytes):
+            for c in s:
+                await self.write(c)
+        else:
+            for c in s:
+                await self.write(ord(c))
 
+
+    async def open_pty(self):
+        # Open a pseudo-terminal
+        master, slave = os.openpty()
+        os.set_blocking(master, False)
+        self.tb._log.info(f"PTS opened at {os.ttyname(slave)}")
+
+        # Forward master read -> RX
+        pty_rx = cocotb.start_soon(self.__pty_rx(master))
+        # Forward TX -> master write
+        pty_tx = cocotb.start_soon(self.__pty_tx(master))
+
+        # Wait for pty is done
+        await pty_rx
+        await pty_tx
+        # Close when done
+        os.close(master)
+        os.close(slave)
+
+    
+    async def __pty_rx(self, master):
+        while True:
+            try:
+                # Forward master read -> RX
+                data = os.read(master, 1)
+                await self.write(data[0])
+            except BlockingIOError:
+                # If no data is available, step the sim by some time
+                await Timer(PTY_POLL_TIME, "us")
+
+
+    async def __pty_tx(self, master):
+        while True:
+            # Forward TX -> master write
+            c = await self.read()
+            os.write(master, c.to_bytes())
 

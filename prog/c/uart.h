@@ -89,7 +89,7 @@ void uart_putc(uint8_t c);
 uint8_t uart_getc();
 
 // Write a string to TX
-int uart_write(uint8_t* buf);
+int uart_write(char* buf);
 
 #endif
 

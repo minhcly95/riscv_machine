@@ -15,12 +15,18 @@ class Ram():
             while True:
                 # Read 4 bytes
                 data = file.read(4)
-                if len(data) < 4:
-                    break   # EOF
-                # Convert to an integer
-                word = struct.unpack('<i', data)[0]  # <i means little-endian
-                # Backdoor the value
-                self.at(i << 2).value = word
-                i += 1
+                eof  = len(data) < 4
+                # Write the value to RAM
+                if len(data) > 0:
+                    # Pad the data to have 4 bytes
+                    data = data.ljust(4, b'\x00')
+                    # Convert to an integer
+                    word = struct.unpack('<i', data)[0]  # <i means little-endian
+                    # Backdoor the value
+                    self.at(i << 2).value = word
+                    i += 1
+                # EOF
+                if eof:
+                    break
         self.obj._log.info(f"Loaded {i << 2} bytes into the RAM")
 

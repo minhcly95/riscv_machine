@@ -14,7 +14,8 @@ SECTIONS
         *(.startup)
         *(.text.startup)
         *(.text)
-        *(.rodata)
+        __rodata = .;
+        *(.rodata.*)
     }
 
     . = ALIGN(4K);
