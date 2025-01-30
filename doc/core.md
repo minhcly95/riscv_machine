@@ -30,8 +30,12 @@ The Controller also controls when the Register File and the CSR are written.
 In such case, the Controller walks through the states: `FETCH`, `EXEC-0`, `MEM-0`, `EXEC-1`, `MEM-1`.
 The phase information is also passes to the `EXEC` stage.
 
-When a synchronous trap (an exception) happens, the Controller gets back to the `FETCH` stage and disable all writes to
+When a trap (an exception or an interrupt) happens, the Controller gets back to the `FETCH` stage and disable all writes to
 the Register File and the CSR, except for changes to handle the trap (setting privilege mode, updating `mcause`, `mepc`, etc.).
+
+The Controller only checks the interrupt condition in the first cycle of `FETCH` stage via the Trap handler.
+It cancels the current `FETCH` stage when an interrupt happens.
+The next cycle will start from the `FETCH` stage again, but with `mie` disabled, so this `FETCH` stage will not be cancelled.
 
 ### `FETCH` Stage
 The `FETCH` stage holds the Program Counter (PC).
@@ -42,7 +46,9 @@ The `FETCH` stage shall update its PC if there is a request from the `EXEC` stag
 
 The `FETCH` stage outputs its PC to be written back to the Register File for the `JAL` and `JALR` commands.
 
-When an exception happens, the PC will be updated to the one provided by the CSR (highest priority) to service the trap.
+When an interrupt happens, the current `FETCH` stage will be cancelled and no memory read is issued.
+
+When an exception or an interrupt happens, the PC will be updated to the one provided by the CSR (highest priority) to service the trap.
 
 ### `EXEC` Stage
 The `EXEC` stage decodes the instructions using the [Decoder](#decoder), accesses the Register File to obtain the operand values,
@@ -92,7 +98,7 @@ The CSR contains all the registers needed to support privilege modes. Currently,
 It manages the privilege mode, general status `mstatus`, settings to service traps (`mtvec`, `mie`, `mip`, `mcause`, `mtval`, `mepc`),
 and counters (`mcycle`, `minstret`). It receives controls from the `EXEC` stage to extract and update the values of its registers.
 
-When an exception happens, normal update to the CSR is disabled.
+When a trap happens, normal update to the CSR is disabled.
 Instead, the CSR receives the trap's data from the Trap handler and modifies the privilege mode and the PC to service the trap.
 PC update request from the CSR to the `FETCH` stage has the highest priority.
 
@@ -106,6 +112,12 @@ The Trap handler collects all the exception sources from the other modules, sort
 based on the priority list defined in the spec, and generates an exception code for `mcause`.
 It also collects the corresponding `mtval` to be stored in the CSR.
 The Trap handler also signals the Controller besides the CSR.
+
+The Trap handler checks the interrupt conditions only in the first cycle of the `FETCH` stage.
+If an interrupt happens, the `FETCH` request is cancelled and no memory read is issued.
+
+No exception can ever happen during the first cycle of the `FETCH` stage,
+so there is no conflict between exceptions and interrupts.
 
 ## Decoder
 The Decoder is a subcomponent of the `EXEC` stage. Its job is to decode the instruction fetched from the `FETCH` stage
