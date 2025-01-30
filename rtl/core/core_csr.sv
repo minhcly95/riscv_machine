@@ -20,9 +20,15 @@ module core_csr (
     input  logic                  exception_valid,
     input  core_pkg::exception_e  exception_cause,
     input  logic [31:0]           exception_value,
+    input  logic                  interrupt_valid,
+    input  core_pkg::interrupt_e  interrupt_cause,
     // To Trap handler
     output core_pkg::priv_e       priv,
-    output logic                  ex_csr_illegal_instr
+    output logic                  cfg_mie,
+    output logic                  cfg_meie,
+    output logic                  ex_csr_illegal_instr,
+    // From external
+    input  logic                  int_m_ext
 );
 
     import core_pkg::*;
@@ -176,6 +182,9 @@ module core_csr (
     // Take into account the legality of the write
     logic         csr_write_en;
 
+    // Trap helper
+    logic         trap_valid;
+
     // ------------------ CSR decode ------------------
     assign dec_cycle                    = (csr_id == CSR_CYCLE);
     assign dec_time                     = (csr_id == CSR_TIME);
@@ -254,7 +263,7 @@ module core_csr (
             CSR_MEPC:          csr_rdata = {mepc_base, 2'b00};
             CSR_MCAUSE:        csr_rdata = mcause;
             CSR_MTVAL:         csr_rdata = mtval;
-            CSR_MIP:           csr_rdata = 32'b0;
+            CSR_MIP:           csr_rdata = {20'b0, int_m_ext, 11'b0};
 
             CSR_MCYCLE:        csr_rdata = mcycle[31:0];
             CSR_MINSTRET:      csr_rdata = minstret[31:0];
@@ -268,19 +277,20 @@ module core_csr (
 
     // ------------------ Priv mode -------------------
     always_ff @(posedge clk or negedge rst_n) begin
-        if (~rst_n)               priv <= PRIV_M;
-        else if (exception_valid) priv <= PRIV_M;
-        else if (legal_mret)      priv <= mpp;
+        if (~rst_n)          priv <= PRIV_M;
+        else if (trap_valid) priv <= PRIV_M;
+        else if (legal_mret) priv <= mpp;
     end
 
     // ----------------- Write data -------------------
+    assign trap_valid   = exception_valid | interrupt_valid;
     assign legal_mret   = csr_en & (priv == PRIV_M) & mret;
     assign csr_write_en = csr_en & csr_write & ~exception_valid;
 
     // mstatus_mie
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)                          mie <= 1'b0;
-        else if (exception_valid)            mie <= 1'b0;
+        else if (trap_valid)                 mie <= 1'b0;
         else if (legal_mret)                 mie <= mpie;
         else if (csr_write_en & dec_mstatus) mie <= csr_wdata[3];
     end
@@ -288,7 +298,7 @@ module core_csr (
     // mstatus_mpie
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)                          mpie <= 1'b1;
-        else if (exception_valid)            mpie <= mie;
+        else if (trap_valid)                 mpie <= mie;
         else if (legal_mret)                 mpie <= 1'b1;
         else if (csr_write_en & dec_mstatus) mpie <= csr_wdata[7];
     end
@@ -296,7 +306,7 @@ module core_csr (
     // mstatus_mpp
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)                                      mpp <= PRIV_U;
-        else if (exception_valid)                        mpp <= priv;
+        else if (trap_valid)                             mpp <= priv;
         else if (legal_mret)                             mpp <= PRIV_U;
         else if (csr_write_en & dec_mstatus & valid_mpp) mpp <= priv_e'(csr_wdata[12:11]);
     end
@@ -415,13 +425,14 @@ module core_csr (
     // mepc
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)                       mepc_base <= 30'b0;
-        else if (exception_valid)         mepc_base <= pc[31:2];
+        else if (trap_valid)              mepc_base <= pc[31:2];
         else if (csr_write_en & dec_mepc) mepc_base <= csr_wdata[31:2];
     end
 
     // mcause
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)                         mcause <= 32'b0;
+        else if (interrupt_valid)           mcause <= {1'b1, 31'(interrupt_cause)};
         else if (exception_valid)           mcause <= 32'(exception_cause);
         else if (csr_write_en & dec_mcause) mcause <= csr_wdata;
     end
@@ -429,9 +440,14 @@ module core_csr (
     // mtval
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)                        mtval <= 32'b0;
+        else if (interrupt_valid)          mtval <= 32'b0;
         else if (exception_valid)          mtval <= exception_value;
         else if (csr_write_en & dec_mtval) mtval <= csr_wdata;
     end
+
+    // -------------- Configuration output ------------
+    assign cfg_mie  = mie;
+    assign cfg_meie = meie;
 
     // --------------- Valid value check --------------
     // mstatus_mpp
@@ -454,11 +470,11 @@ module core_csr (
 
     // ----------------- Trap address -----------------
     always_comb begin
-        if (exception_valid) begin
+        if (trap_valid) begin
             pc_csr_valid = 1'b1;
             case (mtvec_mode)
                 MTVEC_DIRECT:   pc_csr = {mtvec_base, 2'b00};
-                MTVEC_VECTORED: pc_csr = {mtvec_base, 2'b00};
+                MTVEC_VECTORED: pc_csr = {mtvec_base + 30'(interrupt_valid ? interrupt_cause : 5'b0), 2'b00};
                 default:        pc_csr = 'x;
             endcase
         end

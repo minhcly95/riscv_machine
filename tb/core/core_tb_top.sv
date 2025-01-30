@@ -4,7 +4,9 @@ module core_tb_top #(
     parameter  RESET_VECTOR = 32'h0000_0000,    // Value of PC when reset
     parameter  RAM_SIZE = 32'h0010_0000         // RAM size in bytes
 )(
-    input  logic  rst_n
+    input  logic  rst_n,
+    // External interrupt
+    input  logic  int_m_ext
 );
 
     logic clk;
@@ -34,7 +36,8 @@ module core_tb_top #(
         .pwdata        (pwdata),
         .pwstrb        (pwstrb),
         .prdata        (prdata),
-        .pslverr       (pslverr)
+        .pslverr       (pslverr),
+        .int_m_ext     (int_m_ext)
     );
 
     // --------------------- RAM ----------------------

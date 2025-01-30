@@ -12,7 +12,9 @@ module core_top #(
     output logic [31:0]  pwdata,
     output logic  [3:0]  pwstrb,
     input  logic [31:0]  prdata,
-    input  logic         pslverr
+    input  logic         pslverr,
+    // External interrupt
+    input  logic         int_m_ext
 );
 
     import core_pkg::*;
@@ -27,6 +29,7 @@ module core_top #(
     logic         mem_stage_valid;
     logic         mem_stage_ready;
     logic         instr_done;
+    logic         check_interrupt;
 
     // FETCH-EXEC interface
     logic [31:0]  instr;
@@ -74,7 +77,11 @@ module core_top #(
     logic         exception_valid;
     exception_e   exception_cause;
     logic [31:0]  exception_value;
+    logic         interrupt_valid;
+    interrupt_e   interrupt_cause;
     priv_e        priv;
+    logic         cfg_mie;
+    logic         cfg_meie;
     logic         ex_csr_illegal_instr;
     logic         ex_instr_access_fault;
     logic         ex_ecall;
@@ -118,9 +125,10 @@ module core_top #(
         .reg_d_en               (reg_d_en),
         .csr_en                 (csr_en),
         .instr_done             (instr_done),
-        .exception_valid        (exception_valid)
+        .check_interrupt        (check_interrupt),
+        .exception_valid        (exception_valid),
+        .interrupt_valid        (interrupt_valid)
     );
-
 
     // ----------------- FETCH stage ------------------
     core_stage_fetch #(
@@ -241,8 +249,13 @@ module core_top #(
         .exception_valid        (exception_valid),
         .exception_cause        (exception_cause),
         .exception_value        (exception_value),
+        .interrupt_valid        (interrupt_valid),
+        .interrupt_cause        (interrupt_cause),
         .priv                   (priv),
-        .ex_csr_illegal_instr   (ex_csr_illegal_instr)
+        .cfg_mie                (cfg_mie),
+        .cfg_meie               (cfg_meie),
+        .ex_csr_illegal_instr   (ex_csr_illegal_instr),
+        .int_m_ext              (int_m_ext)
     );
 
     // --------------- Memory interface ---------------
@@ -285,24 +298,31 @@ module core_top #(
 
     // ---------------- Trap handler ------------------
     core_trap_handler u_trap_handler(
+        .check_interrupt        (check_interrupt),
         .exception_valid        (exception_valid),
         .exception_cause        (exception_cause),
         .exception_value        (exception_value),
+        .interrupt_valid        (interrupt_valid),
+        .interrupt_cause        (interrupt_cause),
         .priv                   (priv),
+        .cfg_mie                (cfg_mie),
+        .cfg_meie               (cfg_meie),
         .ex_csr_illegal_instr   (ex_csr_illegal_instr),
         .instr                  (instr),
         .imem_addr              (imem_addr),
         .ex_instr_access_fault  (ex_instr_access_fault),
-        .ex_ecall               (ex_ecall),
-        .ex_ebreak              (ex_ebreak),
         .pc_new                 (pc_new),
         .mem_addr               (mem_addr),
+        .ex_ecall               (ex_ecall),
+        .ex_ebreak              (ex_ebreak),
         .ex_exec_illegal_instr  (ex_exec_illegal_instr),
         .ex_instr_misaligned    (ex_instr_misaligned),
         .ex_load_misaligned     (ex_load_misaligned),
         .ex_store_misaligned    (ex_store_misaligned),
         .ex_load_access_fault   (ex_load_access_fault),
-        .ex_store_access_fault  (ex_store_access_fault)
+        .ex_store_access_fault  (ex_store_access_fault),
+        .int_m_ext              (int_m_ext)
     );
+
 
 endmodule

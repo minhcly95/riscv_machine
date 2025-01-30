@@ -66,7 +66,8 @@ module top #(
         .pwdata        (core_i_pwdata),
         .pwstrb        (core_i_pwstrb),
         .prdata        (core_i_prdata),
-        .pslverr       (core_i_pslverr)
+        .pslverr       (core_i_pslverr),
+        .int_m_ext     (1'b0)
     );
 
     // -------------------- Fabric --------------------

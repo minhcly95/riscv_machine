@@ -187,4 +187,13 @@ package core_pkg;
         EX_HARDWARE_ERROR     = 6'd19
     } exception_e;
 
+    typedef enum logic [4:0] {
+        INT_M_EXTERNAL = 5'd11,
+        INT_M_TIMER    = 5'd7,
+        INT_M_SOFTWARE = 5'd3,
+        INT_S_EXTERNAL = 5'd9,
+        INT_S_TIMER    = 5'd5,
+        INT_S_SOFTWARE = 5'd1
+    } interrupt_e;
+
 endpackage

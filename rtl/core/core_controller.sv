@@ -17,8 +17,11 @@ module core_controller (
     // To CSR
     output logic                  csr_en,
     output logic                  instr_done,
+    // To Trap handler
+    output logic                  check_interrupt,
     // From Trap handler
-    input  logic                  exception_valid
+    input  logic                  exception_valid,
+    input  logic                  interrupt_valid
 );
 
     import core_pkg::*;
@@ -26,7 +29,8 @@ module core_controller (
     // State definition
     typedef enum logic [2:0] {
         IDLE,
-        FETCH,
+        FETCH_0,
+        FETCH_1,
         EXEC_0,
         MEM_0,
         EXEC_1,
@@ -47,17 +51,18 @@ module core_controller (
 
     // Transition
     always_comb begin
-        if (exception_valid)
+        if (exception_valid | interrupt_valid)
             // Go back to FETCH immediately after an exception
-            next_state = FETCH;
+            next_state = FETCH_0;
         else
             case (curr_state)
-                IDLE:    next_state = FETCH;
-                FETCH:   next_state = fetch_stage_ready ? EXEC_0 : FETCH;
-                EXEC_0:  next_state = exec_stage_ready  ? (is_mem_op ? MEM_0  : FETCH) : EXEC_0;
-                MEM_0:   next_state = mem_stage_ready   ? (two_phase ? EXEC_1 : FETCH) : MEM_0;
-                EXEC_1:  next_state = exec_stage_ready  ? MEM_1  : EXEC_1;
-                MEM_1:   next_state = mem_stage_ready   ? FETCH  : MEM_1;
+                IDLE:    next_state = FETCH_0;
+                FETCH_0: next_state = FETCH_1;
+                FETCH_1: next_state = fetch_stage_ready ? EXEC_0 : FETCH_1;
+                EXEC_0:  next_state = exec_stage_ready  ? (is_mem_op ? MEM_0  : FETCH_0) : EXEC_0;
+                MEM_0:   next_state = mem_stage_ready   ? (two_phase ? EXEC_1 : FETCH_0) : MEM_0;
+                EXEC_1:  next_state = exec_stage_ready  ? MEM_1   : EXEC_1;
+                MEM_1:   next_state = mem_stage_ready   ? FETCH_0 : MEM_1;
                 default: next_state = IDLE;
             endcase
     end
@@ -81,7 +86,8 @@ module core_controller (
     end
 
     // Output
-    assign fetch_stage_valid = (curr_state == FETCH);
+    assign check_interrupt   = (curr_state == FETCH_0);
+    assign fetch_stage_valid = ((curr_state == FETCH_0) | (curr_state == FETCH_1)) & (~interrupt_valid);
     assign exec_stage_valid  = (curr_state == EXEC_0) | (curr_state == EXEC_1);
     assign mem_stage_valid   = (curr_state == MEM_0)  | (curr_state == MEM_1);
     assign exec_phase        = (curr_state == EXEC_1) | (curr_state == MEM_1);
@@ -103,6 +109,6 @@ module core_controller (
 
     // Instruction is retired when the next state is FETCH
     // but not due to an exception
-    assign instr_done = (curr_state != FETCH) & (next_state == FETCH) & ~exception_valid;
+    assign instr_done = (curr_state != FETCH_0) & (next_state == FETCH_0) & ~exception_valid;
 
 endmodule
