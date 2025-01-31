@@ -7,7 +7,7 @@ LIST_FILE ?= $(PROJ_DIR)/tb/core/core_tb.lst
 
 TOPLEVEL = core_tb_top
 
-MODULE ?= test_fibonacci,test_isa,test_access_fault,test_seq_mul,test_seq_div
+MODULE ?= test_fibonacci,test_isa,test_access_fault,test_seq_mul,test_seq_div,test_int
 
 COMPILE_ARGS += -f $(LIST_FILE) $(TRACE_ARGS)
 

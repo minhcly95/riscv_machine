@@ -5,11 +5,10 @@ from sequences import reset_sequence
 
 
 PROJ_DIR = utils.get_proj_dir()
-MAX_CLK  = 1000
 BASE_RES = 0x1000
 
 
-@cocotb.test()
+@cocotb.test(timeout_time=1, timeout_unit="ms")
 async def test_fibonacci(tb):
     # Start the reset sequence
     cocotb.start_soon(reset_sequence(tb))
@@ -18,8 +17,8 @@ async def test_fibonacci(tb):
     ram = Ram(tb.u_ram)
     ram.load_bin(f"{PROJ_DIR}/build/asm/fibonacci.bin")
 
-    # Wait for ecall or max cycles
-    await utils.wait_ecall(tb, MAX_CLK)
+    # Wait for ecall
+    await utils.wait_ecall(tb.u_core)
 
     # Check the final result is RAM (starting at 0x1000)
     with open(f"{PROJ_DIR}/prog/asm/fibonacci.ref", "r") as file:

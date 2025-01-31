@@ -25,5 +25,5 @@ async def demo_echo(tb):
     cocotb.start_soon(uart.open_pty())
 
     # Wait for an ECALL
-    await RisingEdge(tb.dut.u_core.u_stage_exec.ecall)
+    await utils.wait_ecall(tb.dut.u_core)
 

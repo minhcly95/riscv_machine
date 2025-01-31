@@ -5,7 +5,6 @@ from sequences import reset_sequence
 
 
 PROJ_DIR  = utils.get_proj_dir()
-MAX_CLK   = 100000
 SEQ_SIZE  = 1024
 BASE_A    = 0x1000
 BASE_B    = 0x2000
@@ -15,7 +14,7 @@ BASE_REM  = 0x5000
 BASE_REMU = 0x6000
 
 
-@cocotb.test()
+@cocotb.test(timeout_time=100, timeout_unit="ms")
 async def test_seq_div(tb):
     # Start the reset sequence
     cocotb.start_soon(reset_sequence(tb))
@@ -33,8 +32,8 @@ async def test_seq_div(tb):
         ram.at(BASE_A + (i << 2)).value = a
         ram.at(BASE_B + (i << 2)).value = b
 
-    # Wait for ecall or max cycles
-    await utils.wait_ecall(tb, MAX_CLK)
+    # Wait for ecall
+    await utils.wait_ecall(tb.u_core)
 
     # Check the results
     for (i, (a, b)) in enumerate(all_ab):
