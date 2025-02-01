@@ -9,3 +9,4 @@ ${PROJ_DIR}/rtl/common/fifo_wr.sv
 ${PROJ_DIR}/rtl/common/fifo_wr_single.sv
 ${PROJ_DIR}/rtl/common/buffer.sv
 ${PROJ_DIR}/rtl/common/one_hot_mux.sv
+${PROJ_DIR}/rtl/common/max_finder.sv

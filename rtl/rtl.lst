@@ -1,4 +1,5 @@
 -f ${PROJ_DIR}/rtl/common/common.lst
 -f ${PROJ_DIR}/rtl/core/core.lst
 -f ${PROJ_DIR}/rtl/uart/uart.lst
+-f ${PROJ_DIR}/rtl/plic/plic.lst
 -f ${PROJ_DIR}/rtl/top/top.lst

@@ -17,6 +17,7 @@ module top #(
 
     localparam RAM_ADDR_W  = 31;
     localparam UART_ADDR_W = 12;
+    localparam PLIC_ADDR_W = 26;
 
     // Core -> Fabric
     logic                    core_i_psel;
@@ -48,9 +49,22 @@ module top #(
     logic [3:0]              uart_t_pwstrb;
     logic [31:0]             uart_t_prdata;
     logic                    uart_t_pslverr;
+    // Fabric -> PLIC
+    logic                    plic_t_psel;
+    logic                    plic_t_penable;
+    logic                    plic_t_pready;
+    logic [PLIC_ADDR_W-1:0]  plic_t_paddr;
+    logic                    plic_t_pwrite;
+    logic [31:0]             plic_t_pwdata;
+    logic [3:0]              plic_t_pwstrb;
+    logic [31:0]             plic_t_prdata;
+    logic                    plic_t_pslverr;
 
-    // Interrupts
+    // Interrupt sources
     logic                    uart_int;
+
+    // Interrupt targets
+    logic                    int_m_ext;
 
     // --------------------- Core ---------------------
     core_top #(
@@ -67,13 +81,14 @@ module top #(
         .pwstrb        (core_i_pwstrb),
         .prdata        (core_i_prdata),
         .pslverr       (core_i_pslverr),
-        .int_m_ext     (1'b0)
+        .int_m_ext     (int_m_ext)
     );
 
     // -------------------- Fabric --------------------
     apb_fabric #(
         .RAM_ADDR_W      (RAM_ADDR_W),
-        .UART_ADDR_W     (UART_ADDR_W)
+        .UART_ADDR_W     (UART_ADDR_W),
+        .PLIC_ADDR_W     (PLIC_ADDR_W)
     ) u_apb_fabric(
         .core_i_psel     (core_i_psel),
         .core_i_penable  (core_i_penable),
@@ -101,7 +116,16 @@ module top #(
         .uart_t_pwdata   (uart_t_pwdata),
         .uart_t_pwstrb   (uart_t_pwstrb),
         .uart_t_prdata   (uart_t_prdata),
-        .uart_t_pslverr  (uart_t_pslverr)
+        .uart_t_pslverr  (uart_t_pslverr),
+        .plic_t_psel     (plic_t_psel),
+        .plic_t_penable  (plic_t_penable),
+        .plic_t_pready   (plic_t_pready),
+        .plic_t_paddr    (plic_t_paddr),
+        .plic_t_pwrite   (plic_t_pwrite),
+        .plic_t_pwdata   (plic_t_pwdata),
+        .plic_t_pwstrb   (plic_t_pwstrb),
+        .plic_t_prdata   (plic_t_prdata),
+        .plic_t_pslverr  (plic_t_pslverr)
     );
 
     // --------------------- RAM ----------------------
@@ -138,5 +162,31 @@ module top #(
         .rx        (rx),
         .uart_int  (uart_int)
     );
+
+    // -------------------- PLIC ----------------------
+    plic_top #(
+        .SRC_N    (1),  // 1 interrupt source
+        .TGT_N    (1),  // 1 interrupt target
+        .PRIO_W   (2)   // 4-level (2-bit) priority
+    ) u_plic_top(
+        .clk      (clk),
+        .rst_n    (rst_n),
+        .psel     (plic_t_psel),
+        .penable  (plic_t_penable),
+        .pready   (plic_t_pready),
+        .paddr    (plic_t_paddr),
+        .pwrite   (plic_t_pwrite),
+        .pwdata   (plic_t_pwdata),
+        .pwstrb   (plic_t_pwstrb),
+        .prdata   (plic_t_prdata),
+        .pslverr  (plic_t_pslverr),
+        .int_src  ({
+            uart_int    // Source 1
+        }),
+        .int_tgt  ({
+            int_m_ext   // Target 0
+        })
+    );
+
 
 endmodule

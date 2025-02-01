@@ -1,0 +1,7 @@
+${PROJ_DIR}/rtl/plic/plic_gateway.sv
+${PROJ_DIR}/rtl/plic/plic_notifier.sv
+${PROJ_DIR}/rtl/plic/plic_routing_array.sv
+${PROJ_DIR}/rtl/plic/plic_claim_ctrl.sv
+${PROJ_DIR}/rtl/plic/plic_reg.sv
+${PROJ_DIR}/rtl/plic/plic_apb.sv
+${PROJ_DIR}/rtl/plic/plic_top.sv
