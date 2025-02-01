@@ -10,14 +10,15 @@ MSG = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 async def test_tx(tb, fifo_enable=False, baud_rate=115200, word_len=WordLength.WORD_8, parity_mode=ParityMode.NONE):
     # Start the reset sequence
     await reset_sequence(tb)
+    apb = UartApb(tb)
 
     # Register setup
-    await line_setup(tb, baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
+    await apb.line_setup(baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
     if fifo_enable:
-        await fifo_setup(tb, enable=True)
+        await apb.fifo_setup(enable=True)
 
     # Transmit the message
-    cocotb.start_soon(send_str(tb, MSG))
+    cocotb.start_soon(apb.send_str(MSG))
 
     # Read the message from UART
     uart = Uart(tb, baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
@@ -30,18 +31,19 @@ async def test_tx(tb, fifo_enable=False, baud_rate=115200, word_len=WordLength.W
 async def test_rx(tb, fifo_enable=False, baud_rate=115200, word_len=WordLength.WORD_8, parity_mode=ParityMode.NONE):
     # Start the reset sequence
     await reset_sequence(tb)
+    apb = UartApb(tb)
 
     # Register setup
-    await line_setup(tb, baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
+    await apb.line_setup(baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
     if fifo_enable:
-        await fifo_setup(tb, enable=True)
+        await apb.fifo_setup(enable=True)
 
     # Transmit the message
     uart = Uart(tb, baud_rate=baud_rate, word_len=word_len, parity_mode=parity_mode)
     cocotb.start_soon(uart.write_str(MSG))
 
     # Read the message from register
-    rx_msg = await recv_str(tb, len(MSG))
+    rx_msg = await apb.recv_str(len(MSG))
 
     # Verify the message
     assert rx_msg == word_len.cast_str(MSG)
