@@ -31,6 +31,6 @@ module plic_apb(
 
     // Error condition
     // We don't accept unaligned accesses and partial writes
-    assign pslverr   = (|paddr[1:0]) | (~&pwstrb);
+    assign pslverr   = (|paddr[1:0]) | (pwrite & (~&pwstrb));
 
 endmodule

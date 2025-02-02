@@ -1,4 +1,4 @@
-SCOPES            = top core uart
+SCOPES            = top core uart plic
 SIM_TARGETS       = $(addprefix sim-,$(SCOPES))
 RUN_TARGETS       = $(addprefix run-,$(SCOPES))
 CLEAN_SIM_TARGETS = $(addprefix clean-sim-,$(SCOPES))
@@ -22,6 +22,7 @@ waive:
 run:
 	$(MAKE) run-core
 	$(MAKE) run-uart
+	$(MAKE) run-plic
 	$(MAKE) run-top
 
 run-top: asm c
@@ -69,7 +70,11 @@ sim-$(1):
 	$(MAKE) run-$(1)
 
 wave-$(1):
-	gtkwave tb/$(1)/dump.fst
+	@if [ -f tb/$(1)/dump.fst ]; then \
+		gtkwave tb/$(1)/dump.fst;     \
+	else							  \
+		gtkwave tb/$(1)/dump.vcd;     \
+	fi
 
 clean-sim-$(1):
 	$(MAKE) -C tb/$(1) clean

@@ -5,44 +5,47 @@ from uart import *
 
 class Apb:
     def __init__(self, tb):
-        self.tb  = tb
-        self.clk = tb.clk
+        self.tb   = tb
+        self.clk  = tb.clk
+        self.lock = Lock()
 
 
     async def _write(self, addr, wdata, wstrb, expect_err=False):
-        tb = self.tb
-        tb.psel.value = 1
-        tb.pwrite.value = 1
-        tb.paddr.value = addr
-        tb.pwdata.value = wdata
-        tb.pwstrb.value = wstrb
-        await RisingEdge(tb.clk)
-        tb.penable.value = 1
-        while True:
+        async with self.lock:
+            tb = self.tb
+            tb.psel.value = 1
+            tb.pwrite.value = 1
+            tb.paddr.value = addr
+            tb.pwdata.value = wdata
+            tb.pwstrb.value = wstrb
             await RisingEdge(tb.clk)
-            if tb.pready.value == 1:
-                assert tb.pslverr.value == expect_err
-                tb.psel.value = 0
-                tb.penable.value = 0
-                return
+            tb.penable.value = 1
+            while True:
+                await RisingEdge(tb.clk)
+                if tb.pready.value == 1:
+                    assert tb.pslverr.value == expect_err
+                    tb.psel.value = 0
+                    tb.penable.value = 0
+                    return
 
 
     async def _read(self, addr, expect_err=False):
-        tb = self.tb
-        tb.psel.value = 1
-        tb.pwrite.value = 0
-        tb.paddr.value = addr
-        tb.pwstrb.value = 0
-        await RisingEdge(tb.clk)
-        tb.penable.value = 1
-        while True:
+        async with self.lock:
+            tb = self.tb
+            tb.psel.value = 1
+            tb.pwrite.value = 0
+            tb.paddr.value = addr
+            tb.pwstrb.value = 0
             await RisingEdge(tb.clk)
-            if tb.pready.value == 1:
-                assert tb.pslverr.value == expect_err
-                rdata = tb.prdata.value
-                tb.psel.value = 0
-                tb.penable.value = 0
-                return rdata
+            tb.penable.value = 1
+            while True:
+                await RisingEdge(tb.clk)
+                if tb.pready.value == 1:
+                    assert tb.pslverr.value == expect_err
+                    rdata = tb.prdata.value
+                    tb.psel.value = 0
+                    tb.penable.value = 0
+                    return rdata.integer
 
 
     async def write(self, addr, wdata, expect_err=False):

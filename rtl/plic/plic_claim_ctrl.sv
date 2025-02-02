@@ -9,6 +9,6 @@ module plic_claim_ctrl #(
     output logic [4:0]             claim_src
 );
 
-    assign claim_src = (claim_tgt < TGT_N) ? max_src[claim_tgt] : 5'b0;
+    assign claim_src = (claim_tgt <= 5'(TGT_N-1)) ? max_src[claim_tgt] : 5'b0;
 
 endmodule

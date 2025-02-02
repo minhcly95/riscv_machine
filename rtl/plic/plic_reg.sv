@@ -60,22 +60,22 @@ module plic_reg #(
     // ------------------- Decoder --------------------
     // Interrupt priority: 0x0000000 + 4 * src
     assign dec_src_int_prio   = reg_addr[6:2];
-    assign dec_int_prio       = (reg_addr[25:12] == 14'h0) & (reg_addr[11:7] == 5'h0)  & (dec_src_int_prio  <= SRC_N) & (dec_src_int_prio != 5'h0);
+    assign dec_int_prio       = (reg_addr[25:12] == 14'h0)  & (reg_addr[11:7] == 5'h0)  & (dec_src_int_prio   <= 5'(SRC_N)) & (dec_src_int_prio != 5'h0);
 
     // Interrupt pending:  0x0001000
     assign dec_int_pending    = (reg_addr == 26'h1000);
 
     // Interrupt enable:   0x0002000 + 0x80 * tgt
     assign dec_tgt_int_enable = reg_addr[11:7];
-    assign dec_int_enable     = (reg_addr[25:12] == 14'h2) & (reg_addr[6:2]  == 5'd0)  & (dec_tgt_int_enable < TGT_N);
+    assign dec_int_enable     = (reg_addr[25:12] == 14'h2)  & (reg_addr[6:2]  == 5'd0)  & (dec_tgt_int_enable <= 5'(TGT_N-1));
 
     // Priority threshold: 0x0200000 + 0x1000 * tgt
     assign dec_tgt_threshold  = reg_addr[16:12];
-    assign dec_threshold      = (reg_addr[25:17] == 9'h1)  & (reg_addr[11:2] == 10'd0) & (dec_tgt_threshold  < TGT_N);
+    assign dec_threshold      = (reg_addr[25:17] == 9'h010) & (reg_addr[11:2] == 10'd0) & (dec_tgt_threshold  <= 5'(TGT_N-1));
 
     // Claim/complete:     0x0200004 + 0x1000 * tgt
     assign dec_tgt_claim      = reg_addr[16:12];
-    assign dec_claim          = (reg_addr[25:17] == 9'h1)  & (reg_addr[11:2] == 10'd1) & (dec_tgt_claim      < TGT_N);
+    assign dec_claim          = (reg_addr[25:17] == 9'h010) & (reg_addr[11:2] == 10'd1) & (dec_tgt_claim      <= 5'(TGT_N-1));
 
     // ------------------ Read data -------------------
     assign rdata_int_prio     = 32'(int_prio[dec_src_int_prio]);

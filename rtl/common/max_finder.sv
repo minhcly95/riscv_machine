@@ -3,7 +3,8 @@
 module max_finder #(
     parameter  CH_N  = 2,   // Number of channels
     parameter  VAL_W = 1,   // Value width
-    parameter  PLD_W = 1    // Payload width
+    parameter  PLD_W = 1,   // Payload width
+    parameter  RECUR = 1    // Use recursive implementation
 )(
     // Inputs
     input  logic [CH_N-1:0][VAL_W-1:0]  i_val,
@@ -13,58 +14,30 @@ module max_finder #(
     output logic [PLD_W-1:0]            o_pld
 );
 
-    localparam HI_N = CH_N / 2;
-    localparam LO_N = CH_N - HI_N;
-
     generate
-        if (CH_N == 1) begin : g_single
-            // Single channel, just output directly
-            assign o_val = i_val;
-            assign o_pld = i_pld;
+        if (RECUR) begin: g_recur
+            max_finder_recur #(
+                .CH_N   (CH_N),
+                .VAL_W  (VAL_W),
+                .PLD_W  (PLD_W)
+            ) u_impl(
+                .i_val  (i_val),
+                .i_pld  (i_pld),
+                .o_val  (o_val),
+                .o_pld  (o_pld)
+            );
         end
-        else begin : g_multi
-
-            logic [VAL_W-1:0]  lo_val;
-            logic [VAL_W-1:0]  hi_val;
-
-            logic [PLD_W-1:0]  lo_pld;
-            logic [PLD_W-1:0]  hi_pld;
-
-            // Recursively find max of 2 halves
-            max_finder #(
-                .CH_N   (LO_N),
+        else begin: g_seq
+            max_finder_seq #(
+                .CH_N   (CH_N),
                 .VAL_W  (VAL_W),
                 .PLD_W  (PLD_W)
-            ) u_lo(
-                .i_val  (i_val[LO_N-1:0]),
-                .i_pld  (i_pld[LO_N-1:0]),
-                .o_val  (lo_val),
-                .o_pld  (lo_pld)
+            ) u_impl(
+                .i_val  (i_val),
+                .i_pld  (i_pld),
+                .o_val  (o_val),
+                .o_pld  (o_pld)
             );
-
-            max_finder #(
-                .CH_N   (HI_N),
-                .VAL_W  (VAL_W),
-                .PLD_W  (PLD_W)
-            ) u_hi(
-                .i_val  (i_val[CH_N-1:LO_N]),
-                .i_pld  (i_pld[CH_N-1:LO_N]),
-                .o_val  (hi_val),
-                .o_pld  (hi_pld)
-            );
-
-            // Combine the results
-            always_comb begin
-                if (lo_val >= hi_val) begin
-                    o_val = lo_val;
-                    o_pld = lo_pld;
-                end
-                else begin
-                    o_val = hi_val;
-                    o_pld = hi_pld;
-                end
-            end
-
         end
     endgenerate
 

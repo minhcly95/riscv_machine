@@ -1,6 +1,7 @@
 **.log
 **.bkp
 **.fst
+**.vcd
 **.gtkw
 
 /build/

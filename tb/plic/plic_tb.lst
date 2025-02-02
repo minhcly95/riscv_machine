@@ -1,0 +1,3 @@
+-f ${PROJ_DIR}/rtl/common/common.lst
+-f ${PROJ_DIR}/rtl/plic/plic.lst
+${PROJ_DIR}/tb/plic/plic_tb_top.sv
