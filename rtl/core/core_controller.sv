@@ -87,7 +87,7 @@ module core_controller (
 
     // Output
     assign check_interrupt   = (curr_state == FETCH_0);
-    assign fetch_stage_valid = ((curr_state == FETCH_0) | (curr_state == FETCH_1)) & (~interrupt_valid);
+    assign fetch_stage_valid = (curr_state == FETCH_0) | (curr_state == FETCH_1);
     assign exec_stage_valid  = (curr_state == EXEC_0) | (curr_state == EXEC_1);
     assign mem_stage_valid   = (curr_state == MEM_0)  | (curr_state == MEM_1);
     assign exec_phase        = (curr_state == EXEC_1) | (curr_state == MEM_1);

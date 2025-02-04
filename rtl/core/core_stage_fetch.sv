@@ -23,17 +23,20 @@ module core_stage_fetch #(
     output logic [31:0]  imem_addr,
     input  logic [31:0]  imem_rdata,
     input  logic         imem_err,
+    // From Trap handler
+    input  logic         interrupt_valid,
     // To Trap handler
     output logic         ex_instr_access_fault
 );
 
     logic        fetch_done;
     logic [31:0] curr_pc;
+    logic [31:0] old_pc;
 
     // Handshake
-    assign imem_valid        = fetch_stage_valid;
+    assign imem_valid        = fetch_stage_valid & ~interrupt_valid;
     assign fetch_stage_ready = imem_ready;
-    assign fetch_done        = fetch_stage_valid & fetch_stage_ready;
+    assign fetch_done        = imem_valid & imem_ready;
 
     // PC register
     // Increases by 4 every FETCH cycle
@@ -48,8 +51,11 @@ module core_stage_fetch #(
     // Store the old PC for the EXEC stage
     // since the curr_pc is PC + 4 after fetch_done
     always_ff @(posedge clk) begin
-        if (fetch_done) pc <= curr_pc;
+        if (fetch_done) old_pc <= curr_pc;
     end
+
+    // Real PC is current PC in FETCH stage, but old PC in EXEC and MEM stage
+    assign pc = fetch_stage_valid ? curr_pc : old_pc;
 
     // PC + 4 is actually curr_pc after fetch_done
     assign pc_plus_4 = curr_pc;

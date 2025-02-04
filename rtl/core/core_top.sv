@@ -150,6 +150,7 @@ module core_top #(
         .imem_addr              (imem_addr),
         .imem_rdata             (imem_rdata),
         .imem_err               (imem_err),
+        .interrupt_valid        (interrupt_valid),
         .ex_instr_access_fault  (ex_instr_access_fault)
     );
 

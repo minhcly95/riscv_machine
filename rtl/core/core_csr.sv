@@ -478,7 +478,7 @@ module core_csr (
                 default:        pc_csr = 'x;
             endcase
         end
-        else if (mret) begin
+        else if (legal_mret) begin
             pc_csr_valid = 1'b1;
             pc_csr       = {mepc_base, 2'b00};
         end
