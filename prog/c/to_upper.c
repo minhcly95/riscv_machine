@@ -3,11 +3,13 @@
 #define BAUD_RATE   115200
 #define CLOCK_FREQ  (16 * BAUD_RATE)
 
+// This program capitalizes all letters received from UART and sends them back.
+// It constantly polls to check for new data.
 int main() {
     // Register config
     uart_set_baud_rate(BAUD_RATE, CLOCK_FREQ);
-    uart_set_lcr(UART_LCR_LEN_8 | UART_LCR_PARITY_NONE);
-    uart_set_fcr(UART_FCR_FIFO_ENABLE);
+    *UART_LCR = UART_LCR_LEN_8 | UART_LCR_PARITY_NONE;
+    *UART_FCR = UART_FCR_FIFO_ENABLE;
 
     // Main loop
     while (1) {

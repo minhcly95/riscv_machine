@@ -6,8 +6,8 @@
 int main() {
     // Register config
     uart_set_baud_rate(BAUD_RATE, CLOCK_FREQ);
-    uart_set_lcr(UART_LCR_LEN_8 | UART_LCR_PARITY_NONE);
-    uart_set_fcr(UART_FCR_FIFO_ENABLE);
+    *UART_LCR = UART_LCR_LEN_8 | UART_LCR_PARITY_NONE;
+    *UART_FCR = UART_FCR_FIFO_ENABLE;
 
     // Wait for any input
     uart_getc();

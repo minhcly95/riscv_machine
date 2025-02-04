@@ -5,22 +5,22 @@ ENTRY(_start)
 MEMORY {
     RAM (rwx)  : ORIGIN = 0x00000000, LENGTH = 1M
     UART (rw)  : ORIGIN = 0x80000000, LENGTH = 4K
+    PLIC (rw)  : ORIGIN = 0x90000000, LENGTH = 64M
 }
 
 SECTIONS
 {
     . = 0x00000000;
-    .text : {
+    .output : {
         *(.startup)
         *(.text.startup)
         *(.text)
         __rodata = .;
         *(.rodata.*)
-    }
-
-    . = ALIGN(4K);
-    .data : {
+        __data = .;
         *(.data)
+        __sdata = .;
+        *(.sdata)
     }
 
     . = ALIGN(4K);
@@ -38,5 +38,6 @@ SECTIONS
     }
 
     __uart = ORIGIN(UART);
+    __plic = ORIGIN(PLIC);
 }
 

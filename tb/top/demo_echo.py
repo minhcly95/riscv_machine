@@ -18,7 +18,7 @@ async def demo_echo(tb):
     ram.load_bin(f"{PROJ_DIR}/build/c/demo_echo.bin")
 
     # Wait for CPU setup
-    await ClockCycles(tb.clk, 100)
+    await ClockCycles(tb.clk, 200)
 
     # Open virtual terminal for UART
     uart = Uart(tb)

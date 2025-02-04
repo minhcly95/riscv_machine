@@ -2,21 +2,22 @@
 #define __UART_H__
 
 #include <stdint.h>
+#include "mmio.h"
 
 #define UART_BASE                    0x80000000
 
-#define UART_REG_THR                 0x0
-#define UART_REG_RHR                 0x0
-#define UART_REG_IER                 0x1
-#define UART_REG_FCR                 0x2
-#define UART_REG_ISR                 0x2
-#define UART_REG_LCR                 0x3
-#define UART_REG_MCR                 0x4
-#define UART_REG_LSR                 0x5
-#define UART_REG_MSR                 0x6
-#define UART_REG_SPR                 0x7
-#define UART_REG_DLL                 0x0
-#define UART_REG_DLM                 0x1
+#define UART_THR                     MMIO_8(UART_BASE + 0x0)
+#define UART_RHR                     MMIO_8(UART_BASE + 0x0)
+#define UART_IER                     MMIO_8(UART_BASE + 0x1)
+#define UART_FCR                     MMIO_8(UART_BASE + 0x2)
+#define UART_ISR                     MMIO_8(UART_BASE + 0x2)
+#define UART_LCR                     MMIO_8(UART_BASE + 0x3)
+#define UART_MCR                     MMIO_8(UART_BASE + 0x4)
+#define UART_LSR                     MMIO_8(UART_BASE + 0x5)
+#define UART_MSR                     MMIO_8(UART_BASE + 0x6)
+#define UART_SPR                     MMIO_8(UART_BASE + 0x7)
+#define UART_DLL                     MMIO_8(UART_BASE + 0x0)
+#define UART_DLM                     MMIO_8(UART_BASE + 0x1)
 
 #define UART_IER_RX_DATA_READY       0x01
 #define UART_IER_THR_EMPTY           0x02
@@ -72,15 +73,6 @@
 
 // Set baud rate (return div const)
 uint16_t uart_set_baud_rate(int baud_rate, int clk_freq);
-
-// Config LCR
-void uart_set_lcr(uint8_t config);
-
-// Config FCR
-void uart_set_fcr(uint8_t config);
-
-// Config MCR
-void uart_set_mcr(uint8_t config);
 
 // Write a character to TX
 void uart_putc(uint8_t c);
