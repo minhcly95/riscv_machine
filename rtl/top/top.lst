@@ -1,3 +1,4 @@
 ${PROJ_DIR}/rtl/top/apb_fabric.sv
 ${PROJ_DIR}/rtl/top/ram.sv
+${PROJ_DIR}/rtl/top/mtimer.sv
 ${PROJ_DIR}/rtl/top/top.sv

@@ -15,56 +15,68 @@ module top #(
     input  logic  rx
 );
 
-    localparam RAM_ADDR_W  = 31;
-    localparam UART_ADDR_W = 12;
-    localparam PLIC_ADDR_W = 26;
+    localparam RAM_ADDR_W    = 31;
+    localparam UART_ADDR_W   = 12;
+    localparam MTIMER_ADDR_W = 16;
+    localparam PLIC_ADDR_W   = 26;
 
     // Core -> Fabric
-    logic                    core_i_psel;
-    logic                    core_i_penable;
-    logic                    core_i_pready;
-    logic [31:0]             core_i_paddr;
-    logic                    core_i_pwrite;
-    logic [31:0]             core_i_pwdata;
-    logic [3:0]              core_i_pwstrb;
-    logic [31:0]             core_i_prdata;
-    logic                    core_i_pslverr;
+    logic                      core_i_psel;
+    logic                      core_i_penable;
+    logic                      core_i_pready;
+    logic [31:0]               core_i_paddr;
+    logic                      core_i_pwrite;
+    logic [31:0]               core_i_pwdata;
+    logic [3:0]                core_i_pwstrb;
+    logic [31:0]               core_i_prdata;
+    logic                      core_i_pslverr;
     // Fabric -> RAM
-    logic                    ram_t_psel;
-    logic                    ram_t_penable;
-    logic                    ram_t_pready;
-    logic [RAM_ADDR_W-1:0]   ram_t_paddr;
-    logic                    ram_t_pwrite;
-    logic [31:0]             ram_t_pwdata;
-    logic [3:0]              ram_t_pwstrb;
-    logic [31:0]             ram_t_prdata;
-    logic                    ram_t_pslverr;
+    logic                      ram_t_psel;
+    logic                      ram_t_penable;
+    logic                      ram_t_pready;
+    logic [RAM_ADDR_W-1:0]     ram_t_paddr;
+    logic                      ram_t_pwrite;
+    logic [31:0]               ram_t_pwdata;
+    logic [3:0]                ram_t_pwstrb;
+    logic [31:0]               ram_t_prdata;
+    logic                      ram_t_pslverr;
     // Fabric -> UART
-    logic                    uart_t_psel;
-    logic                    uart_t_penable;
-    logic                    uart_t_pready;
-    logic [UART_ADDR_W-1:0]  uart_t_paddr;
-    logic                    uart_t_pwrite;
-    logic [31:0]             uart_t_pwdata;
-    logic [3:0]              uart_t_pwstrb;
-    logic [31:0]             uart_t_prdata;
-    logic                    uart_t_pslverr;
+    logic                      uart_t_psel;
+    logic                      uart_t_penable;
+    logic                      uart_t_pready;
+    logic [UART_ADDR_W-1:0]    uart_t_paddr;
+    logic                      uart_t_pwrite;
+    logic [31:0]               uart_t_pwdata;
+    logic [3:0]                uart_t_pwstrb;
+    logic [31:0]               uart_t_prdata;
+    logic                      uart_t_pslverr;
+    // Fabric -> MTIMER
+    logic                      mtimer_t_psel;
+    logic                      mtimer_t_penable;
+    logic                      mtimer_t_pready;
+    logic [MTIMER_ADDR_W-1:0]  mtimer_t_paddr;
+    logic                      mtimer_t_pwrite;
+    logic [31:0]               mtimer_t_pwdata;
+    logic [3:0]                mtimer_t_pwstrb;
+    logic [31:0]               mtimer_t_prdata;
+    logic                      mtimer_t_pslverr;
     // Fabric -> PLIC
-    logic                    plic_t_psel;
-    logic                    plic_t_penable;
-    logic                    plic_t_pready;
-    logic [PLIC_ADDR_W-1:0]  plic_t_paddr;
-    logic                    plic_t_pwrite;
-    logic [31:0]             plic_t_pwdata;
-    logic [3:0]              plic_t_pwstrb;
-    logic [31:0]             plic_t_prdata;
-    logic                    plic_t_pslverr;
+    logic                      plic_t_psel;
+    logic                      plic_t_penable;
+    logic                      plic_t_pready;
+    logic [PLIC_ADDR_W-1:0]    plic_t_paddr;
+    logic                      plic_t_pwrite;
+    logic [31:0]               plic_t_pwdata;
+    logic [3:0]                plic_t_pwstrb;
+    logic [31:0]               plic_t_prdata;
+    logic                      plic_t_pslverr;
 
     // Interrupt sources
-    logic                    uart_int;
+    logic                      uart_int;
+    logic                      mtimer_int;
 
     // Interrupt targets
-    logic                    int_m_ext;
+    logic                      int_m_ext;
 
     // --------------------- Core ---------------------
     core_top #(
@@ -86,46 +98,56 @@ module top #(
 
     // -------------------- Fabric --------------------
     apb_fabric #(
-        .RAM_ADDR_W      (RAM_ADDR_W),
-        .UART_ADDR_W     (UART_ADDR_W),
-        .PLIC_ADDR_W     (PLIC_ADDR_W)
+        .RAM_ADDR_W        (RAM_ADDR_W),
+        .UART_ADDR_W       (UART_ADDR_W),
+        .MTIMER_ADDR_W     (MTIMER_ADDR_W),
+        .PLIC_ADDR_W       (PLIC_ADDR_W)
     ) u_apb_fabric(
-        .core_i_psel     (core_i_psel),
-        .core_i_penable  (core_i_penable),
-        .core_i_pready   (core_i_pready),
-        .core_i_paddr    (core_i_paddr),
-        .core_i_pwrite   (core_i_pwrite),
-        .core_i_pwdata   (core_i_pwdata),
-        .core_i_pwstrb   (core_i_pwstrb),
-        .core_i_prdata   (core_i_prdata),
-        .core_i_pslverr  (core_i_pslverr),
-        .ram_t_psel      (ram_t_psel),
-        .ram_t_penable   (ram_t_penable),
-        .ram_t_pready    (ram_t_pready),
-        .ram_t_paddr     (ram_t_paddr),
-        .ram_t_pwrite    (ram_t_pwrite),
-        .ram_t_pwdata    (ram_t_pwdata),
-        .ram_t_pwstrb    (ram_t_pwstrb),
-        .ram_t_prdata    (ram_t_prdata),
-        .ram_t_pslverr   (ram_t_pslverr),
-        .uart_t_psel     (uart_t_psel),
-        .uart_t_penable  (uart_t_penable),
-        .uart_t_pready   (uart_t_pready),
-        .uart_t_paddr    (uart_t_paddr),
-        .uart_t_pwrite   (uart_t_pwrite),
-        .uart_t_pwdata   (uart_t_pwdata),
-        .uart_t_pwstrb   (uart_t_pwstrb),
-        .uart_t_prdata   (uart_t_prdata),
-        .uart_t_pslverr  (uart_t_pslverr),
-        .plic_t_psel     (plic_t_psel),
-        .plic_t_penable  (plic_t_penable),
-        .plic_t_pready   (plic_t_pready),
-        .plic_t_paddr    (plic_t_paddr),
-        .plic_t_pwrite   (plic_t_pwrite),
-        .plic_t_pwdata   (plic_t_pwdata),
-        .plic_t_pwstrb   (plic_t_pwstrb),
-        .plic_t_prdata   (plic_t_prdata),
-        .plic_t_pslverr  (plic_t_pslverr)
+        .core_i_psel       (core_i_psel),
+        .core_i_penable    (core_i_penable),
+        .core_i_pready     (core_i_pready),
+        .core_i_paddr      (core_i_paddr),
+        .core_i_pwrite     (core_i_pwrite),
+        .core_i_pwdata     (core_i_pwdata),
+        .core_i_pwstrb     (core_i_pwstrb),
+        .core_i_prdata     (core_i_prdata),
+        .core_i_pslverr    (core_i_pslverr),
+        .ram_t_psel        (ram_t_psel),
+        .ram_t_penable     (ram_t_penable),
+        .ram_t_pready      (ram_t_pready),
+        .ram_t_paddr       (ram_t_paddr),
+        .ram_t_pwrite      (ram_t_pwrite),
+        .ram_t_pwdata      (ram_t_pwdata),
+        .ram_t_pwstrb      (ram_t_pwstrb),
+        .ram_t_prdata      (ram_t_prdata),
+        .ram_t_pslverr     (ram_t_pslverr),
+        .uart_t_psel       (uart_t_psel),
+        .uart_t_penable    (uart_t_penable),
+        .uart_t_pready     (uart_t_pready),
+        .uart_t_paddr      (uart_t_paddr),
+        .uart_t_pwrite     (uart_t_pwrite),
+        .uart_t_pwdata     (uart_t_pwdata),
+        .uart_t_pwstrb     (uart_t_pwstrb),
+        .uart_t_prdata     (uart_t_prdata),
+        .uart_t_pslverr    (uart_t_pslverr),
+        .mtimer_t_psel     (mtimer_t_psel),
+        .mtimer_t_penable  (mtimer_t_penable),
+        .mtimer_t_pready   (mtimer_t_pready),
+        .mtimer_t_paddr    (mtimer_t_paddr),
+        .mtimer_t_pwrite   (mtimer_t_pwrite),
+        .mtimer_t_pwdata   (mtimer_t_pwdata),
+        .mtimer_t_pwstrb   (mtimer_t_pwstrb),
+        .mtimer_t_prdata   (mtimer_t_prdata),
+        .mtimer_t_pslverr  (mtimer_t_pslverr),
+        .plic_t_psel       (plic_t_psel),
+        .plic_t_penable    (plic_t_penable),
+        .plic_t_pready     (plic_t_pready),
+        .plic_t_paddr      (plic_t_paddr),
+        .plic_t_pwrite     (plic_t_pwrite),
+        .plic_t_pwdata     (plic_t_pwdata),
+        .plic_t_pwstrb     (plic_t_pwstrb),
+        .plic_t_prdata     (plic_t_prdata),
+        .plic_t_pslverr    (plic_t_pslverr)
     );
 
     // --------------------- RAM ----------------------
@@ -163,12 +185,28 @@ module top #(
         .uart_int  (uart_int)
     );
 
+    // ------------------- MTIMER ---------------------
+    mtimer u_mtimer(
+        .clk         (clk),
+        .rst_n       (rst_n),
+        .psel        (mtimer_t_psel),
+        .penable     (mtimer_t_penable),
+        .pready      (mtimer_t_pready),
+        .paddr       (mtimer_t_paddr),
+        .pwrite      (mtimer_t_pwrite),
+        .pwdata      (mtimer_t_pwdata),
+        .pwstrb      (mtimer_t_pwstrb),
+        .prdata      (mtimer_t_prdata),
+        .pslverr     (mtimer_t_pslverr),
+        .mtimer_int  (mtimer_int)
+    );
+
     // -------------------- PLIC ----------------------
     plic_top #(
         .SRC_N    (1),  // 1 interrupt source
         .TGT_N    (1),  // 1 interrupt target
         .PRIO_W   (2)   // 4-level (2-bit) priority
-    ) u_plic_top(
+    ) u_plic(
         .clk      (clk),
         .rst_n    (rst_n),
         .psel     (plic_t_psel),
