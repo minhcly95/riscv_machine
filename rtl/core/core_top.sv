@@ -14,7 +14,8 @@ module core_top #(
     input  logic [31:0]  prdata,
     input  logic         pslverr,
     // External interrupt
-    input  logic         int_m_ext
+    input  logic         int_m_ext,
+    input  logic         mtimer_int
 );
 
     import core_pkg::*;
@@ -82,6 +83,7 @@ module core_top #(
     priv_e        priv;
     logic         cfg_mie;
     logic         cfg_meie;
+    logic         cfg_mtie;
     logic         ex_csr_illegal_instr;
     logic         ex_instr_access_fault;
     logic         ex_ecall;
@@ -255,8 +257,10 @@ module core_top #(
         .priv                   (priv),
         .cfg_mie                (cfg_mie),
         .cfg_meie               (cfg_meie),
+        .cfg_mtie               (cfg_mtie),
         .ex_csr_illegal_instr   (ex_csr_illegal_instr),
-        .int_m_ext              (int_m_ext)
+        .int_m_ext              (int_m_ext),
+        .mtimer_int             (mtimer_int)
     );
 
     // --------------- Memory interface ---------------
@@ -308,6 +312,7 @@ module core_top #(
         .priv                   (priv),
         .cfg_mie                (cfg_mie),
         .cfg_meie               (cfg_meie),
+        .cfg_mtie               (cfg_mtie),
         .ex_csr_illegal_instr   (ex_csr_illegal_instr),
         .instr                  (instr),
         .imem_addr              (imem_addr),
@@ -322,7 +327,8 @@ module core_top #(
         .ex_store_misaligned    (ex_store_misaligned),
         .ex_load_access_fault   (ex_load_access_fault),
         .ex_store_access_fault  (ex_store_access_fault),
-        .int_m_ext              (int_m_ext)
+        .int_m_ext              (int_m_ext),
+        .mtimer_int             (mtimer_int)
     );
 
 

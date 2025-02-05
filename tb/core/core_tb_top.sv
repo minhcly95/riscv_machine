@@ -6,7 +6,8 @@ module core_tb_top #(
 )(
     input  logic  rst_n,
     // External interrupt
-    input  logic  int_m_ext
+    input  logic  int_m_ext,
+    input  logic  mtimer_int
 );
 
     logic clk;
@@ -37,7 +38,8 @@ module core_tb_top #(
         .pwstrb        (pwstrb),
         .prdata        (prdata),
         .pslverr       (pslverr),
-        .int_m_ext     (int_m_ext)
+        .int_m_ext     (int_m_ext),
+        .mtimer_int    (mtimer_int)
     );
 
     // --------------------- RAM ----------------------

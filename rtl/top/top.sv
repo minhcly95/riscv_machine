@@ -93,7 +93,8 @@ module top #(
         .pwstrb        (core_i_pwstrb),
         .prdata        (core_i_prdata),
         .pslverr       (core_i_pslverr),
-        .int_m_ext     (int_m_ext)
+        .int_m_ext     (int_m_ext),
+        .mtimer_int    (mtimer_int)
     );
 
     // -------------------- Fabric --------------------

@@ -26,9 +26,11 @@ module core_csr (
     output core_pkg::priv_e       priv,
     output logic                  cfg_mie,
     output logic                  cfg_meie,
+    output logic                  cfg_mtie,
     output logic                  ex_csr_illegal_instr,
     // From external
-    input  logic                  int_m_ext
+    input  logic                  int_m_ext,
+    input  logic                  mtimer_int
 );
 
     import core_pkg::*;
@@ -263,7 +265,7 @@ module core_csr (
             CSR_MEPC:          csr_rdata = {mepc_base, 2'b00};
             CSR_MCAUSE:        csr_rdata = mcause;
             CSR_MTVAL:         csr_rdata = mtval;
-            CSR_MIP:           csr_rdata = {20'b0, int_m_ext, 11'b0};
+            CSR_MIP:           csr_rdata = {20'b0, int_m_ext, 3'b0, mtimer_int, 7'b0};
 
             CSR_MCYCLE:        csr_rdata = mcycle[31:0];
             CSR_MINSTRET:      csr_rdata = minstret[31:0];
@@ -448,6 +450,7 @@ module core_csr (
     // -------------- Configuration output ------------
     assign cfg_mie  = mie;
     assign cfg_meie = meie;
+    assign cfg_mtie = mtie;
 
     // --------------- Valid value check --------------
     // mstatus_mpp

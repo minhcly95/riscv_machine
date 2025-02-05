@@ -11,6 +11,7 @@ module core_trap_handler (
     input  core_pkg::priv_e       priv,
     input  logic                  cfg_mie,
     input  logic                  cfg_meie,
+    input  logic                  cfg_mtie,
     input  logic                  ex_csr_illegal_instr,
     // From FETCH
     input  logic [31:0]           instr,
@@ -29,12 +30,15 @@ module core_trap_handler (
     input  logic                  ex_load_access_fault,
     input  logic                  ex_store_access_fault,
     // From external
-    input  logic                  int_m_ext
+    input  logic                  int_m_ext,
+    input  logic                  mtimer_int
 );
 
     import core_pkg::*;
 
     logic  int_m_enable;
+    logic  int_m_ext_active;
+    logic  int_m_tim_active;
 
     // Trap when any exception happens
     assign exception_valid = |{
@@ -58,9 +62,12 @@ module core_trap_handler (
         endcase
     end
 
+    assign int_m_ext_active = cfg_meie & int_m_ext;
+    assign int_m_tim_active = cfg_mtie & mtimer_int;
+
     always_comb begin
         if (check_interrupt)
-            interrupt_valid = int_m_enable & (int_m_ext & cfg_meie);
+            interrupt_valid = int_m_enable & |{int_m_ext_active, int_m_tim_active};
         else
             interrupt_valid = 1'b0;
     end
@@ -94,7 +101,12 @@ module core_trap_handler (
     end
 
     always_comb begin
-        interrupt_cause = INT_M_EXTERNAL;
+        if (int_m_ext_active)
+            interrupt_cause = INT_M_EXTERNAL;
+        else if (int_m_tim_active)
+            interrupt_cause = INT_M_TIMER;
+        else
+            interrupt_cause = INT_NONE;
     end
 
     // Exception argument (mtval)

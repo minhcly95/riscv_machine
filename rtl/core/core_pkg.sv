@@ -193,7 +193,8 @@ package core_pkg;
         INT_M_SOFTWARE = 5'd3,
         INT_S_EXTERNAL = 5'd9,
         INT_S_TIMER    = 5'd5,
-        INT_S_SOFTWARE = 5'd1
+        INT_S_SOFTWARE = 5'd1,
+        INT_NONE       = 5'd0
     } interrupt_e;
 
 endpackage
