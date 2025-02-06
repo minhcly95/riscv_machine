@@ -28,6 +28,8 @@ module core_csr (
     output logic                  cfg_meie,
     output logic                  cfg_mtie,
     output logic                  ex_csr_illegal_instr,
+    // MTIME direct input
+    input  logic [63:0]           mtime,
     // From external
     input  logic                  int_m_ext,
     input  logic                  mtimer_int
@@ -248,10 +250,10 @@ module core_csr (
     always_comb begin
         case (csr_id)
             CSR_CYCLE:         csr_rdata = mcycle[31:0];
-            CSR_TIME:          csr_rdata = mcycle[31:0];
+            CSR_TIME:          csr_rdata = mtime[31:0];
             CSR_INSTRET:       csr_rdata = minstret[31:0];
             CSR_CYCLEH:        csr_rdata = mcycle[63:32];
-            CSR_TIMEH:         csr_rdata = mcycle[63:32];
+            CSR_TIMEH:         csr_rdata = mtime[63:32];
             CSR_INSTRETH:      csr_rdata = minstret[63:32];
 
             CSR_MSTATUS:       csr_rdata = {10'b0, tw, 3'b0, mprv, 4'b0, mpp, 3'b0, mpie, 3'b0, mie, 3'b0};

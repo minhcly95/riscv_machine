@@ -13,6 +13,8 @@ module core_top #(
     output logic  [3:0]  pwstrb,
     input  logic [31:0]  prdata,
     input  logic         pslverr,
+    // MTIME direct input
+    input  logic [63:0]  mtime,
     // External interrupt
     input  logic         int_m_ext,
     input  logic         mtimer_int
@@ -259,6 +261,7 @@ module core_top #(
         .cfg_meie               (cfg_meie),
         .cfg_mtie               (cfg_mtie),
         .ex_csr_illegal_instr   (ex_csr_illegal_instr),
+        .mtime                  (mtime),
         .int_m_ext              (int_m_ext),
         .mtimer_int             (mtimer_int)
     );

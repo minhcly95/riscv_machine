@@ -71,6 +71,9 @@ module top #(
     logic [31:0]               plic_t_prdata;
     logic                      plic_t_pslverr;
 
+    // MTIME
+    logic [63:0]               mtime;
+
     // Interrupt sources
     logic                      uart_int;
     logic                      mtimer_int;
@@ -93,6 +96,7 @@ module top #(
         .pwstrb        (core_i_pwstrb),
         .prdata        (core_i_prdata),
         .pslverr       (core_i_pslverr),
+        .mtime         (mtime),
         .int_m_ext     (int_m_ext),
         .mtimer_int    (mtimer_int)
     );
@@ -199,6 +203,7 @@ module top #(
         .pwstrb      (mtimer_t_pwstrb),
         .prdata      (mtimer_t_prdata),
         .pslverr     (mtimer_t_pslverr),
+        .mtime       (mtime),
         .mtimer_int  (mtimer_int)
     );
 

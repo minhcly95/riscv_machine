@@ -11,12 +11,14 @@ module mtimer(
     input  logic [3:0]        pwstrb,
     output logic [31:0]       prdata,
     output logic              pslverr,
+    // MTIME direct output to core
+    output logic [63:0]       mtime,
     // Interrupt output
     output logic              mtimer_int
 );
 
     // TIME register
-    logic [63:0]  mtime;
+    logic [63:0]  next_mtime;
 
     // TIMECMP register
     logic [63:0]  mtimecmp;
@@ -62,27 +64,14 @@ module mtimer(
 
     // ---------------- Write actions -----------------
     // Store TIME
-    floper #(
-        .WIDTH    (32),
-        .RST_VAL  (32'h00000000)
-    ) u_mtime(
-        .clk      (clk),
-        .rst_n    (rst_n),
-        .en       (wr_mtime),
-        .d        (pwdata),
-        .q        (mtime[0 +: 32])
-    );
+    assign next_mtime = mtime + 1'b1;
 
-    floper #(
-        .WIDTH    (32),
-        .RST_VAL  (32'h00000000)
-    ) u_mtimeh(
-        .clk      (clk),
-        .rst_n    (rst_n),
-        .en       (wr_mtimeh),
-        .d        (pwdata),
-        .q        (mtime[32 +: 32])
-    );
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (~rst_n)         mtime <= 64'd0;
+        else if (wr_mtime)  mtime <= {next_mtime[63:32], pwdata};
+        else if (wr_mtimeh) mtime <= {pwdata, next_mtime[31:0]};
+        else                mtime <= next_mtime;
+    end
 
     // Store TIMECMP
     floper #(

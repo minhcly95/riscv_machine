@@ -1,5 +1,5 @@
 // Top-level testbench
-// Consists of the core, a RAM, and a clock generator
+// Consists of the core, a RAM, a clock generator, and a MTIME counter.
 module core_tb_top #(
     parameter  RESET_VECTOR = 32'h0000_0000,    // Value of PC when reset
     parameter  RAM_SIZE = 32'h0010_0000         // RAM size in bytes
@@ -23,6 +23,8 @@ module core_tb_top #(
     logic [31:0]  prdata;
     logic         pslverr;
 
+    logic [63:0]  mtime;
+
     // --------------------- Core ---------------------
     core_top #(
         .RESET_VECTOR  (RESET_VECTOR)
@@ -38,6 +40,7 @@ module core_tb_top #(
         .pwstrb        (pwstrb),
         .prdata        (prdata),
         .pslverr       (pslverr),
+        .mtime         (mtime),
         .int_m_ext     (int_m_ext),
         .mtimer_int    (mtimer_int)
     );
@@ -67,5 +70,12 @@ module core_tb_top #(
             #500ns;
         end
     end
+
+    // ----------------- MTIME counter ----------------
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (~rst_n) mtime <= 64'b0;
+        else        mtime <= mtime + 1'b1;
+    end
+
 
 endmodule
