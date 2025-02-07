@@ -7,7 +7,7 @@ LIST_FILE ?= $(PROJ_DIR)/tb/top/tb.lst
 
 TOPLEVEL = tb_top
 
-MODULE ?= test_echo,test_to_upper
+MODULE ?= test_echo,test_to_upper,test_timer
 
 COMPILE_ARGS += -f $(LIST_FILE) $(TRACE_ARGS)
 

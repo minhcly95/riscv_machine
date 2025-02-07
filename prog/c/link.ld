@@ -3,9 +3,11 @@ ENTRY(_start)
 
 
 MEMORY {
-    RAM (rwx)  : ORIGIN = 0x00000000, LENGTH = 1M
-    UART (rw)  : ORIGIN = 0x80000000, LENGTH = 4K
-    PLIC (rw)  : ORIGIN = 0x90000000, LENGTH = 64M
+    RAM      (rwx) : ORIGIN = 0x00000000, LENGTH = 1M
+    UART     (rw)  : ORIGIN = 0x80000000, LENGTH = 4K
+    MTIME    (rw)  : ORIGIN = 0x80010000, LENGTH = 32K
+    MTIMECMP (rw)  : ORIGIN = 0x80018000, LENGTH = 32K
+    PLIC     (rw)  : ORIGIN = 0x90000000, LENGTH = 64M
 }
 
 SECTIONS
@@ -17,14 +19,19 @@ SECTIONS
         *(.text)
         __rodata = .;
         *(.rodata.*)
-        __data = .;
-        *(.data)
         __sdata = .;
         *(.sdata)
     }
 
     . = ALIGN(4K);
+    .data : {
+        __data = .;
+        *(.data)
+    }
+
+    . = ALIGN(4K);
     .bss : {
+        __bss = .;
         *(.bss)
     }
 
@@ -37,7 +44,9 @@ SECTIONS
         __stack_start = .;
     }
 
-    __uart = ORIGIN(UART);
-    __plic = ORIGIN(PLIC);
+    __uart     = ORIGIN(UART);
+    __mtime    = ORIGIN(MTIME);
+    __mtimecmp = ORIGIN(MTIMECMP);
+    __plic     = ORIGIN(PLIC);
 }
 

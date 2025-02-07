@@ -17,7 +17,7 @@ MSG = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam vel nulla 
 
 
 @cocotb.test(timeout_time=100, timeout_unit="ms")
-async def test_to_upper(tb, bin_name="to_upper"):
+async def test_to_upper(tb, bin_name="test_to_upper"):
     # Start the reset sequence
     await reset_sequence(tb)
 
@@ -41,4 +41,4 @@ async def test_to_upper(tb, bin_name="to_upper"):
 
 @cocotb.test(timeout_time=100, timeout_unit="ms")
 async def test_to_upper_int(tb):
-    await test_to_upper(tb, bin_name="to_upper_int")
+    await test_to_upper(tb, bin_name="test_to_upper_int")

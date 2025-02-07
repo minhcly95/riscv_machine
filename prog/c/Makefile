@@ -1,6 +1,6 @@
 TARGET ?= riscv32-unknown-linux-gnu
 
-PROGS     = to_upper to_upper_int demo_echo
+PROGS     = test_to_upper test_to_upper_int test_timer demo_echo
 PROG_DIR = $(PROJ_DIR)/build/c
 PROG_BIN  = $(addprefix $(PROG_DIR)/,$(addsuffix .bin,$(PROGS)))
 PROG_OBJ  = $(addprefix $(PROG_DIR)/,$(addsuffix .o,$(PROGS)))
@@ -17,9 +17,11 @@ $(PROG_BIN) $(PROG_OBJ) $(PROG_DUMP): | $(PROG_DIR)
 $(PROG_DIR):
 	mkdir -p $(PROG_DIR)
 
-$(PROG_DIR)/to_upper.o: start.s to_upper.c uart.c
+$(PROG_DIR)/test_to_upper.o: start.s test_to_upper.c uart.c
 
-$(PROG_DIR)/to_upper_int.o: start_int.s to_upper_int.c uart.c circ_buf.c
+$(PROG_DIR)/test_to_upper_int.o: start_int.s test_to_upper_int.c uart.c circ_buf.c
+
+$(PROG_DIR)/test_timer.o: start_int.s test_timer.c uart.c
 
 $(PROG_DIR)/demo_echo.o: start.s demo_echo.c uart.c
 

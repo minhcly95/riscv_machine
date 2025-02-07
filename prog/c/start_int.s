@@ -7,8 +7,8 @@ _start:
     # Configure the interrupt handler
     la      t0, _trap_handler
     csrw    mtvec, t0
-    # Enable interrupt
-    li      t1, 0x800
+    # Enable interrupt (external and timer)
+    li      t1, 0x880
     csrs    mie, t1
     csrsi   mstatus, 0x8
     # Jump to main
@@ -41,10 +41,9 @@ _trap_handler:
     sw      a5, 8(sp)
     sw      a6, 4(sp)
     sw      a7, 0(sp)
-    # Make sure we only handle external interrupt
+    # Make sure we only handle interrupt
     csrr    t0, mcause
-    li      t1, 0x8000000b
-    bne     t0, t1, _halt
+    bgez    t0, _halt
 _enter_int_handler:
     # Jump to C's interrupt handler
     jal     int_handler

@@ -75,10 +75,21 @@
 uint16_t uart_set_baud_rate(int baud_rate, int clk_freq);
 
 // Write a character to TX
-void uart_putc(uint8_t c);
+inline void uart_putc(uint8_t c) {
+    // Wait for THR empty
+    while (!(*UART_LSR & UART_LSR_THR_EMPTY));
+    // Send the character
+    *UART_THR = c;
+}
 
 // Read a character from RX
-uint8_t uart_getc();
+inline uint8_t uart_getc() {
+    // Wait for data ready
+    while (!(*UART_LSR & UART_LSR_DATA_READY));
+    // Read the character
+    return *UART_RHR;
+}
+
 
 // Write a string to TX
 int uart_write(char* buf);
