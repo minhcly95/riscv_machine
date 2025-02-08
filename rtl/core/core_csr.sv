@@ -21,13 +21,22 @@ module core_csr (
     input  logic                  exception_valid,
     input  core_pkg::exception_e  exception_cause,
     input  logic [31:0]           exception_value,
-    input  logic                  interrupt_valid,
-    input  core_pkg::interrupt_e  interrupt_cause,
+    input  logic                  m_interrupt_valid,
+    input  core_pkg::interrupt_e  m_interrupt_cause,
+    input  logic                  s_interrupt_valid,
+    input  core_pkg::interrupt_e  s_interrupt_cause,
     // To Trap handler
     output core_pkg::priv_e       priv,
     output logic                  cfg_mie,
+    output logic                  cfg_sie,
     output logic                  cfg_meie,
     output logic                  cfg_mtie,
+    output logic                  cfg_seie,
+    output logic                  cfg_stie,
+    output logic                  cfg_ssie,
+    output logic                  cfg_seip,
+    output logic                  cfg_stip,
+    output logic                  cfg_ssip,
     output logic                  ex_csr_illegal_instr,
     // MTIME direct input
     input  logic [63:0]           mtime,
@@ -183,16 +192,38 @@ module core_csr (
     logic         tw;
     logic         tsr;
 
-    logic [29:0]  mtvec_base;
-    mtvec_mode_e  mtvec_mode;
-
     logic [29:0]  stvec_base;
     mtvec_mode_e  stvec_mode;
 
+    logic [29:0]  mtvec_base;
+    mtvec_mode_e  mtvec_mode;
+
+    logic [31:0]  medeleg;
+    logic         medeleg_instr_misaligned;
+    logic         medeleg_instr_access_fault;
+    logic         medeleg_illegal_instr;
+    logic         medeleg_breakpoint;
+    logic         medeleg_load_misaligned;
+    logic         medeleg_load_access_fault;
+    logic         medeleg_store_misaligned;
+    logic         medeleg_store_access_fault;
+    logic         medeleg_ecall_umode;
+    logic         medeleg_ecall_smode;
+    logic         medeleg_instr_page_fault;
+    logic         medeleg_load_page_fault;
+    logic         medeleg_store_page_fault;
+    logic         medeleg_software_check;
+    logic         medeleg_hardware_error;
+
     logic         seie;
     logic         stie;
+    logic         ssie;
     logic         meie;
     logic         mtie;
+
+    logic         seip;
+    logic         stip;
+    logic         ssip;
 
     logic [63:0]  mcycle;
     logic [63:0]  minstret;
@@ -326,7 +357,7 @@ module core_csr (
             CSR_INSTRETH:      csr_rdata = minstret[63:32];
 
             CSR_SSTATUS:       csr_rdata = {12'b0, mxr, sum, 9'b0, spp, 2'b0, spie, 3'b0, sie, 1'b0};
-            CSR_SIE:           csr_rdata = {22'b0, seie, 3'b0, stie, 5'b0};
+            CSR_SIE:           csr_rdata = {22'b0, seie, 3'b0, stie, 3'b0, ssip, 1'b0};
             CSR_STVEC:         csr_rdata = {stvec_base, stvec_mode};
             CSR_SCOUNTEREN:    csr_rdata = {29'b0, scounteren_ir, scounteren_tm, scounteren_cy};
 
@@ -334,7 +365,7 @@ module core_csr (
             CSR_SEPC:          csr_rdata = {sepc_base, 2'b00};
             CSR_SCAUSE:        csr_rdata = scause;
             CSR_STVAL:         csr_rdata = stval;
-            CSR_SIP:           csr_rdata = 32'b0;
+            CSR_SIP:           csr_rdata = {22'b0, seip, 3'b0, stip, 3'b0, ssip, 1'b0};
 
             CSR_SENVCFG:       csr_rdata = 32'b0;
             CSR_SATP:          csr_rdata = 32'b0;
@@ -342,7 +373,10 @@ module core_csr (
             CSR_MSTATUS:       csr_rdata = {9'b0, tsr, tw, tvm, mxr, sum, mprv, 4'b0, mpp, 2'b0, spp, mpie, 1'b0, spie, 1'b0, mie, 1'b0, sie, 1'b0};
             CSR_MSTATUSH:      csr_rdata = 32'b0;
             CSR_MISA:          csr_rdata = {MISA_MXL_32, 4'b0, MISA_EXT};
-            CSR_MIE:           csr_rdata = {20'b0, meie, 1'b0, seie, 1'b0, mtie, 1'b0, stie, 5'b0};
+            CSR_MEDELEG:       csr_rdata = medeleg;
+            CSR_MEDELEGH:      csr_rdata = 32'b0;
+            CSR_MIDELEG:       csr_rdata = 32'b0010_0010_0010;  // Always delegate S-mode interrupts
+            CSR_MIE:           csr_rdata = {20'b0, meie, 1'b0, seie, 1'b0, mtie, 1'b0, stie, 3'b0, ssie, 1'b0};
             CSR_MTVEC:         csr_rdata = {mtvec_base, mtvec_mode};
             CSR_MCOUNTEREN:    csr_rdata = {29'b0, mcounteren_ir, mcounteren_tm, mcounteren_cy};
 
@@ -350,7 +384,7 @@ module core_csr (
             CSR_MEPC:          csr_rdata = {mepc_base, 2'b00};
             CSR_MCAUSE:        csr_rdata = mcause;
             CSR_MTVAL:         csr_rdata = mtval;
-            CSR_MIP:           csr_rdata = {20'b0, int_m_ext, 3'b0, mtimer_int, 7'b0};
+            CSR_MIP:           csr_rdata = {20'b0, int_m_ext, 1'b0, seip, 1'b0, mtimer_int, 1'b0, stip, 3'b0, ssip, 1'b0};
 
             CSR_MCYCLE:        csr_rdata = mcycle[31:0];
             CSR_MINSTRET:      csr_rdata = minstret[31:0];
@@ -362,6 +396,28 @@ module core_csr (
         endcase
     end
 
+    assign medeleg = {
+        12'b0,
+        medeleg_hardware_error,
+        medeleg_software_check,
+        2'b0,
+        medeleg_store_page_fault,
+        1'b0,
+        medeleg_load_page_fault,
+        medeleg_instr_page_fault,
+        2'b0,
+        medeleg_ecall_smode,
+        medeleg_ecall_umode,
+        medeleg_store_access_fault,
+        medeleg_store_misaligned,
+        medeleg_load_access_fault,
+        medeleg_load_misaligned,
+        medeleg_breakpoint,
+        medeleg_illegal_instr,
+        medeleg_instr_access_fault,
+        medeleg_instr_misaligned
+    };
+
     // ------------------ Priv mode -------------------
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)           priv <= PRIV_M;
@@ -371,11 +427,20 @@ module core_csr (
         else if (legal_sret)  priv <= priv_e'({1'b0, spp});
     end
 
+    // --------------- Trap condition -----------------
+    always_comb begin
+        if (m_interrupt_valid)    mtrap_valid = 1'b1;
+        else if (exception_valid) mtrap_valid = (priv == PRIV_M) | (~medeleg[5'(exception_cause)]);
+        else                      mtrap_valid = 1'b0;
+    end
+
+    always_comb begin
+        if (s_interrupt_valid)    strap_valid = ~mtrap_valid;
+        else if (exception_valid) strap_valid = ~mtrap_valid;
+        else                      strap_valid = 1'b0;
+    end
+
     // ----------------- Write data -------------------
-    assign mtrap_valid  = exception_valid | interrupt_valid;
-    assign strap_valid  = 1'b0; // TODO: support S trap
-    assign legal_mret   = csr_en & (priv == PRIV_M) & mret;
-    assign legal_sret   = csr_en & (priv != PRIV_U) & sret;
     assign csr_write_en = csr_en & csr_write & ~exception_valid;
 
     // mstatus_sie
@@ -505,16 +570,60 @@ module core_csr (
         .q        (mtvec_mode)
     );
 
+    // medeleg
+    floper #(
+        .WIDTH    (15),
+        .RST_VAL  (0)
+    ) u_flop_medeleg(
+        .clk      (clk),
+        .rst_n    (rst_n),
+        .en       (csr_write_en & dec_medeleg),
+        .d        ({
+            csr_wdata[0],
+            csr_wdata[1],
+            csr_wdata[2],
+            csr_wdata[3],
+            csr_wdata[4],
+            csr_wdata[5],
+            csr_wdata[6],
+            csr_wdata[7],
+            csr_wdata[8],
+            csr_wdata[9],
+            csr_wdata[12],
+            csr_wdata[13],
+            csr_wdata[15],
+            csr_wdata[18],
+            csr_wdata[19]
+        }),
+        .q        ({
+            medeleg_instr_misaligned,
+            medeleg_instr_access_fault,
+            medeleg_illegal_instr,
+            medeleg_breakpoint,
+            medeleg_load_misaligned,
+            medeleg_load_access_fault,
+            medeleg_store_misaligned,
+            medeleg_store_access_fault,
+            medeleg_ecall_umode,
+            medeleg_ecall_smode,
+            medeleg_instr_page_fault,
+            medeleg_load_page_fault,
+            medeleg_store_page_fault,
+            medeleg_software_check,
+            medeleg_hardware_error
+        })
+    );
+
     // sie
     floper #(
-        .WIDTH    (2),
+        .WIDTH    (3),
         .RST_VAL  (0)
     ) u_flop_sie(
         .clk      (clk),
         .rst_n    (rst_n),
         .en       (csr_write_en & (dec_mie | dec_sie)),
-        .d        ({csr_wdata[9], csr_wdata[5]}),
-        .q        ({seie, stie})
+        .d        ({csr_wdata[9], csr_wdata[5], csr_wdata[1]}),
+        .q        ({seie, stie, ssie})
     );
 
     // mie
@@ -527,6 +636,30 @@ module core_csr (
         .en       (csr_write_en & dec_mie),
         .d        ({csr_wdata[11], csr_wdata[7]}),
         .q        ({meie, mtie})
+    );
+
+    // sip
+    floper #(
+        .WIDTH    (1),
+        .RST_VAL  (0)
+    ) u_flop_sip(
+        .clk      (clk),
+        .rst_n    (rst_n),
+        .en       (csr_write_en & (dec_mip | dec_sip)),
+        .d        (csr_wdata[1]),
+        .q        (ssip)
+    );
+
+    // mip
+    floper #(
+        .WIDTH    (2),
+        .RST_VAL  (0)
+    ) u_flop_mip(
+        .clk      (clk),
+        .rst_n    (rst_n),
+        .en       (csr_write_en & dec_mip),
+        .d        ({csr_wdata[9], csr_wdata[5]}),
+        .q        ({seip, stip})
     );
 
     // mcycle
@@ -626,7 +759,7 @@ module core_csr (
     // scause
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)                             scause <= 32'b0;
-        else if (strap_valid & interrupt_valid) scause <= {1'b1, 31'(interrupt_cause)};
+        else if (s_interrupt_valid)             scause <= {1'b1, 31'(s_interrupt_cause)};
         else if (strap_valid & exception_valid) scause <= 32'(exception_cause);
         else if (csr_write_en & dec_scause)     scause <= csr_wdata;
     end
@@ -634,7 +767,7 @@ module core_csr (
     // mcause
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)                             mcause <= 32'b0;
-        else if (mtrap_valid & interrupt_valid) mcause <= {1'b1, 31'(interrupt_cause)};
+        else if (m_interrupt_valid)             mcause <= {1'b1, 31'(m_interrupt_cause)};
         else if (mtrap_valid & exception_valid) mcause <= 32'(exception_cause);
         else if (csr_write_en & dec_mcause)     mcause <= csr_wdata;
     end
@@ -642,7 +775,7 @@ module core_csr (
     // stval
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)                             stval <= 32'b0;
-        else if (strap_valid & interrupt_valid) stval <= 32'b0;
+        else if (s_interrupt_valid)             stval <= 32'b0;
         else if (strap_valid & exception_valid) stval <= exception_value;
         else if (csr_write_en & dec_stval)      stval <= csr_wdata;
     end
@@ -650,15 +783,22 @@ module core_csr (
     // mtval
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n)                             mtval <= 32'b0;
-        else if (mtrap_valid & interrupt_valid) mtval <= 32'b0;
+        else if (m_interrupt_valid)             mtval <= 32'b0;
         else if (mtrap_valid & exception_valid) mtval <= exception_value;
         else if (csr_write_en & dec_mtval)      mtval <= csr_wdata;
     end
 
     // -------------- Configuration output ------------
     assign cfg_mie  = mie;
+    assign cfg_sie  = sie;
     assign cfg_meie = meie;
     assign cfg_mtie = mtie;
+    assign cfg_seie = seie;
+    assign cfg_stie = stie;
+    assign cfg_ssie = ssie;
+    assign cfg_seip = seip;
+    assign cfg_stip = stip;
+    assign cfg_ssip = ssip;
 
     // --------------- Valid value check --------------
     // mstatus_mpp
@@ -686,7 +826,7 @@ module core_csr (
             pc_csr_valid = 1'b1;
             case (mtvec_mode)
                 MTVEC_DIRECT:   pc_csr = {mtvec_base, 2'b00};
-                MTVEC_VECTORED: pc_csr = {mtvec_base + 30'(interrupt_valid ? interrupt_cause : 5'b0), 2'b00};
+                MTVEC_VECTORED: pc_csr = {mtvec_base + 30'(m_interrupt_valid ? m_interrupt_cause : 5'b0), 2'b00};
                 default:        pc_csr = 'x;
             endcase
         end
@@ -694,7 +834,7 @@ module core_csr (
             pc_csr_valid = 1'b1;
             case (stvec_mode)
                 MTVEC_DIRECT:   pc_csr = {stvec_base, 2'b00};
-                MTVEC_VECTORED: pc_csr = {stvec_base + 30'(interrupt_valid ? interrupt_cause : 5'b0), 2'b00};
+                MTVEC_VECTORED: pc_csr = {stvec_base + 30'(s_interrupt_valid ? s_interrupt_cause : 5'b0), 2'b00};
                 default:        pc_csr = 'x;
             endcase
         end
@@ -724,6 +864,9 @@ module core_csr (
         else
             ex_csr_illegal_instr = 1'b0;
     end
+
+    assign legal_mret = csr_en & (priv == PRIV_M) & mret;
+    assign legal_sret = csr_en & (priv != PRIV_U) & sret;
 
     assign legal_mread = |{
         // U-mode

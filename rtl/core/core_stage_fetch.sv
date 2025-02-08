@@ -24,7 +24,8 @@ module core_stage_fetch #(
     input  logic [31:0]  imem_rdata,
     input  logic         imem_err,
     // From Trap handler
-    input  logic         interrupt_valid,
+    input  logic         m_interrupt_valid,
+    input  logic         s_interrupt_valid,
     // To Trap handler
     output logic         ex_instr_access_fault
 );
@@ -34,7 +35,7 @@ module core_stage_fetch #(
     logic [31:0] old_pc;
 
     // Handshake
-    assign imem_valid        = fetch_stage_valid & ~interrupt_valid;
+    assign imem_valid        = fetch_stage_valid & ~(m_interrupt_valid | s_interrupt_valid);
     assign fetch_stage_ready = imem_ready;
     assign fetch_done        = imem_valid & imem_ready;
 

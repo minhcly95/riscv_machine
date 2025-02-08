@@ -21,7 +21,8 @@ module core_controller (
     output logic                  check_interrupt,
     // From Trap handler
     input  logic                  exception_valid,
-    input  logic                  interrupt_valid
+    input  logic                  m_interrupt_valid,
+    input  logic                  s_interrupt_valid
 );
 
     import core_pkg::*;
@@ -51,7 +52,7 @@ module core_controller (
 
     // Transition
     always_comb begin
-        if (exception_valid | interrupt_valid)
+        if (exception_valid | m_interrupt_valid | s_interrupt_valid)
             // Go back to FETCH immediately after an exception
             next_state = FETCH_0;
         else

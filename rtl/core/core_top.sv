@@ -81,12 +81,21 @@ module core_top #(
     logic         exception_valid;
     exception_e   exception_cause;
     logic [31:0]  exception_value;
-    logic         interrupt_valid;
-    interrupt_e   interrupt_cause;
+    logic         m_interrupt_valid;
+    interrupt_e   m_interrupt_cause;
+    logic         s_interrupt_valid;
+    interrupt_e   s_interrupt_cause;
     priv_e        priv;
     logic         cfg_mie;
+    logic         cfg_sie;
     logic         cfg_meie;
     logic         cfg_mtie;
+    logic         cfg_seie;
+    logic         cfg_stie;
+    logic         cfg_ssie;
+    logic         cfg_seip;
+    logic         cfg_stip;
+    logic         cfg_ssip;
     logic         ex_csr_illegal_instr;
     logic         ex_instr_access_fault;
     logic         ex_ecall;
@@ -132,7 +141,8 @@ module core_top #(
         .instr_done             (instr_done),
         .check_interrupt        (check_interrupt),
         .exception_valid        (exception_valid),
-        .interrupt_valid        (interrupt_valid)
+        .m_interrupt_valid      (m_interrupt_valid),
+        .s_interrupt_valid      (s_interrupt_valid)
     );
 
     // ----------------- FETCH stage ------------------
@@ -155,7 +165,8 @@ module core_top #(
         .imem_addr              (imem_addr),
         .imem_rdata             (imem_rdata),
         .imem_err               (imem_err),
-        .interrupt_valid        (interrupt_valid),
+        .m_interrupt_valid      (m_interrupt_valid),
+        .s_interrupt_valid      (s_interrupt_valid),
         .ex_instr_access_fault  (ex_instr_access_fault)
     );
 
@@ -257,12 +268,21 @@ module core_top #(
         .exception_valid        (exception_valid),
         .exception_cause        (exception_cause),
         .exception_value        (exception_value),
-        .interrupt_valid        (interrupt_valid),
-        .interrupt_cause        (interrupt_cause),
+        .m_interrupt_valid      (m_interrupt_valid),
+        .m_interrupt_cause      (m_interrupt_cause),
+        .s_interrupt_valid      (s_interrupt_valid),
+        .s_interrupt_cause      (s_interrupt_cause),
         .priv                   (priv),
         .cfg_mie                (cfg_mie),
+        .cfg_sie                (cfg_sie),
         .cfg_meie               (cfg_meie),
         .cfg_mtie               (cfg_mtie),
+        .cfg_seie               (cfg_seie),
+        .cfg_stie               (cfg_stie),
+        .cfg_ssie               (cfg_ssie),
+        .cfg_seip               (cfg_seip),
+        .cfg_stip               (cfg_stip),
+        .cfg_ssip               (cfg_ssip),
         .ex_csr_illegal_instr   (ex_csr_illegal_instr),
         .mtime                  (mtime),
         .int_m_ext              (int_m_ext),
@@ -313,12 +333,21 @@ module core_top #(
         .exception_valid        (exception_valid),
         .exception_cause        (exception_cause),
         .exception_value        (exception_value),
-        .interrupt_valid        (interrupt_valid),
-        .interrupt_cause        (interrupt_cause),
+        .m_interrupt_valid      (m_interrupt_valid),
+        .m_interrupt_cause      (m_interrupt_cause),
+        .s_interrupt_valid      (s_interrupt_valid),
+        .s_interrupt_cause      (s_interrupt_cause),
         .priv                   (priv),
         .cfg_mie                (cfg_mie),
+        .cfg_sie                (cfg_sie),
         .cfg_meie               (cfg_meie),
         .cfg_mtie               (cfg_mtie),
+        .cfg_seie               (cfg_seie),
+        .cfg_stie               (cfg_stie),
+        .cfg_ssie               (cfg_ssie),
+        .cfg_seip               (cfg_seip),
+        .cfg_stip               (cfg_stip),
+        .cfg_ssip               (cfg_ssip),
         .ex_csr_illegal_instr   (ex_csr_illegal_instr),
         .instr                  (instr),
         .imem_addr              (imem_addr),

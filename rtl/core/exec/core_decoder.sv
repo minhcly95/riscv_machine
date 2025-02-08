@@ -53,6 +53,9 @@ module core_decoder (
     logic       zero_rd;
     logic       zero_rs1;
 
+    logic       wfi;
+    logic       sfence_vma;
+
     logic [CTRL_W-1:0] ctrl;
 
     logic       illegal_op;
@@ -80,10 +83,12 @@ module core_decoder (
 
     // Main decode table
     always_comb begin
-        ecall  = 1'b0;
-        ebreak = 1'b0;
-        mret   = 1'b0;
-        sret   = 1'b0;
+        ecall      = 1'b0;
+        ebreak     = 1'b0;
+        mret       = 1'b0;
+        sret       = 1'b0;
+        wfi        = 1'b0;
+        sfence_vma = 1'b0;
 
         case (opcode)
             OP_OP:          ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_EXEC,  PC_NORMAL, MEM_READ};
@@ -120,11 +125,13 @@ module core_decoder (
                 SYS_CSRRSI,
                 SYS_CSRRCI: ctrl = {CTRL_EXEC, IMM_C, SRC_CI, WB_EXEC,  PC_NORMAL, MEM_READ};
                 SYS_PRIV: begin
-                    ctrl   = {CTRL_EXEC, IMM_Z, SRC_RI, WB_NONE,  PC_NORMAL, MEM_READ};
-                    ecall  = (instr[31:20] == 12'b0000000_00000);
-                    ebreak = (instr[31:20] == 12'b0000000_00001);
-                    mret   = (instr[31:20] == 12'b0011000_00010);
-                    sret   = (instr[31:20] == 12'b0001000_00010);
+                    ctrl       = {CTRL_EXEC, IMM_Z, SRC_RI, WB_NONE,  PC_NORMAL, MEM_READ};
+                    ecall      = (instr[31:20] == 12'b0000000_00000);
+                    ebreak     = (instr[31:20] == 12'b0000000_00001);
+                    mret       = (instr[31:20] == 12'b0011000_00010);
+                    sret       = (instr[31:20] == 12'b0001000_00010);
+                    wfi        = (instr[31:20] == 12'b0001000_00101);
+                    sfence_vma = (instr[31:25] ==  7'b0001001);
                 end
                 default:    ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_NONE,  PC_NORMAL, MEM_READ};
             endcase
@@ -357,7 +364,7 @@ module core_decoder (
             SYS_CSRRWI,
             SYS_CSRRSI,
             SYS_CSRRCI: illegal_system = 1'b0;
-            SYS_PRIV:   illegal_system = ~|{ecall, ebreak, mret};
+            SYS_PRIV:   illegal_system = ~|{ecall, ebreak, mret, sret, wfi, sfence_vma};
             default:    illegal_system = 1'b1;
         endcase
     end
