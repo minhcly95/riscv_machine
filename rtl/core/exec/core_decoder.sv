@@ -25,6 +25,7 @@ module core_decoder (
     output logic                    ecall,
     output logic                    ebreak,
     output logic                    mret,
+    output logic                    sret,
     output logic                    illegal_instr
 );
 
@@ -82,6 +83,7 @@ module core_decoder (
         ecall  = 1'b0;
         ebreak = 1'b0;
         mret   = 1'b0;
+        sret   = 1'b0;
 
         case (opcode)
             OP_OP:          ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_EXEC,  PC_NORMAL, MEM_READ};
@@ -122,6 +124,7 @@ module core_decoder (
                     ecall  = (instr[31:20] == 12'b0000000_00000);
                     ebreak = (instr[31:20] == 12'b0000000_00001);
                     mret   = (instr[31:20] == 12'b0011000_00010);
+                    sret   = (instr[31:20] == 12'b0001000_00010);
                 end
                 default:    ctrl = {CTRL_EXEC, IMM_Z, SRC_RR, WB_NONE,  PC_NORMAL, MEM_READ};
             endcase

@@ -48,5 +48,5 @@ exec(generate_tests("rv32ui"))
 exec(generate_tests("rv32um"))
 exec(generate_tests("rv32ua"))
 exec(generate_tests("rv32mi"))
-# exec(generate_tests("rv32si"))
+exec(generate_tests("rv32si"))
 

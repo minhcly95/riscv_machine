@@ -94,7 +94,7 @@ or at the end of `MEM` stage depending on the commands.
 When an exception happens, the Register file will be disabled by the Controller.
 
 ### Control and Status Register (CSR)
-The CSR contains all the registers needed to support privilege modes. Currently, only M-mode and U-mode are supported.
+The CSR contains all the registers needed to support privilege modes. Currently, M-mode, S-mode, and U-mode are supported.
 It manages the privilege mode, general status `mstatus`, settings to service traps (`mtvec`, `mie`, `mip`, `mcause`, `mtval`, `mepc`),
 and counters (`mcycle`, `minstret`). It receives controls from the `EXEC` stage to extract and update the values of its registers.
 

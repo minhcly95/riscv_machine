@@ -32,7 +32,7 @@ module mtimer(
 
     // ---------------- APB handshake -----------------
     assign pready  = 1'b1;      // No wait states
-    assign wr_en   = psel & penable & pwrite;
+    assign wr_en   = psel & penable & pwrite & ~pslverr;
     assign pslverr = ~&pwstrb;  // Partial write is not allowed
 
     // ------------------- Decoder --------------------

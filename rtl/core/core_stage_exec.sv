@@ -35,6 +35,7 @@ module core_stage_exec (
     input  logic [31:0]           csr_rdata,
     output logic [31:0]           csr_wdata,
     output logic                  mret,
+    output logic                  sret,
     // To Trap handler
     output logic                  ex_ecall,
     output logic                  ex_ebreak,
@@ -117,6 +118,7 @@ module core_stage_exec (
         .ecall          (ecall),
         .ebreak         (ebreak),
         .mret           (mret),
+        .sret           (sret),
         .illegal_instr  (illegal_instr)
     );
 

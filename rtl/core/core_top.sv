@@ -67,6 +67,7 @@ module core_top #(
     logic [31:0]  csr_rdata;
     logic [31:0]  csr_wdata;
     logic         mret;
+    logic         sret;
     logic         pc_csr_valid;
     logic [31:0]  pc_csr;
 
@@ -189,6 +190,7 @@ module core_top #(
         .csr_rdata              (csr_rdata),
         .csr_wdata              (csr_wdata),
         .mret                   (mret),
+        .sret                   (sret),
         .ex_ecall               (ex_ecall),
         .ex_ebreak              (ex_ebreak),
         .ex_exec_illegal_instr  (ex_exec_illegal_instr),
@@ -248,6 +250,7 @@ module core_top #(
         .csr_rdata              (csr_rdata),
         .csr_wdata              (csr_wdata),
         .mret                   (mret),
+        .sret                   (sret),
         .pc                     (pc),
         .pc_csr_valid           (pc_csr_valid),
         .pc_csr                 (pc_csr),

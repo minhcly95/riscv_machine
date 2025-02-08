@@ -168,6 +168,11 @@ package core_pkg;
         PRIV_M = 2'b11
     } priv_e;
 
+    typedef enum logic [0:0] {
+        SPRIV_U = 1'b0,
+        SPRIV_S = 1'b1
+    } spriv_e;
+
     typedef enum logic [5:0] {
         EX_INSTR_MISALIGNED   = 6'd0,
         EX_INSTR_ACCESS_FAULT = 6'd1,
