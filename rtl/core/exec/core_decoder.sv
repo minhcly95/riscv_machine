@@ -21,7 +21,7 @@ module core_decoder (
     output logic                    sc,
     output logic [11:0]             csr_id,
     output logic                    csr_read,
-    output logic                    csr_write,
+    output core_pkg::csr_upd_e      csr_upd,
     output logic                    ecall,
     output logic                    ebreak,
     output logic                    mret,
@@ -119,10 +119,10 @@ module core_decoder (
             OP_SYSTEM: case (sys_op)
                 SYS_CSRRW,
                 SYS_CSRRS,
-                SYS_CSRRC:  ctrl = {CTRL_EXEC, IMM_C, SRC_CA, WB_EXEC,  PC_NORMAL, MEM_READ};
+                SYS_CSRRC:  ctrl = {CTRL_EXEC, IMM_C, SRC_RR, WB_CSR,   PC_NORMAL, MEM_READ};
                 SYS_CSRRWI,
                 SYS_CSRRSI,
-                SYS_CSRRCI: ctrl = {CTRL_EXEC, IMM_C, SRC_CI, WB_EXEC,  PC_NORMAL, MEM_READ};
+                SYS_CSRRCI: ctrl = {CTRL_EXEC, IMM_C, SRC_RI, WB_CSR,   PC_NORMAL, MEM_READ};
                 SYS_PRIV: begin
                     ctrl       = {CTRL_EXEC, IMM_Z, SRC_RI, WB_NONE,  PC_NORMAL, MEM_READ};
                     ecall      = (instr[31:20] == 12'b0000000_00000);
@@ -148,8 +148,6 @@ module core_decoder (
             endcase
         else if ((opcode == OP_AMO) & (amo_op == AMO_SC))
             exec_engine = EXEC_RSV;
-        else if (opcode == OP_SYSTEM)
-            exec_engine = EXEC_CSR;
         else
             exec_engine = EXEC_ALU;
     end
@@ -191,12 +189,12 @@ module core_decoder (
                 default: alu_op = ALU_ADD;
             endcase
             OP_SYSTEM: case (sys_op)
-                SYS_CSRRW:  alu_op = ALU_OB;
-                SYS_CSRRS:  alu_op = ALU_OR;
-                SYS_CSRRC:  alu_op = ALU_ANDN;
-                SYS_CSRRWI: alu_op = ALU_OB;
-                SYS_CSRRSI: alu_op = ALU_OR;
-                SYS_CSRRCI: alu_op = ALU_ANDN;
+                SYS_CSRRW,
+                SYS_CSRRS,
+                SYS_CSRRC:  alu_op = ALU_OA;
+                SYS_CSRRWI,
+                SYS_CSRRSI,
+                SYS_CSRRCI: alu_op = ALU_OB;
                 default:    alu_op = ALU_ADD;
             endcase
             default:     alu_op = ALU_ADD;
@@ -245,25 +243,28 @@ module core_decoder (
             case (sys_op)
                 SYS_CSRRW,
                 SYS_CSRRWI: begin
-                    csr_read  = ~zero_rd;
-                    csr_write = 1'b1;
+                    csr_read = ~zero_rd;
+                    csr_upd  = CSR_WRITE;
                 end
                 SYS_CSRRS,
-                SYS_CSRRSI,
+                SYS_CSRRSI: begin
+                    csr_read = 1'b1;
+                    csr_upd  = zero_rs1 ? CSR_NONE : CSR_SET;
+                end
                 SYS_CSRRC,
                 SYS_CSRRCI: begin
-                    csr_read  = 1'b1;
-                    csr_write = ~zero_rs1;
+                    csr_read = 1'b1;
+                    csr_upd  = zero_rs1 ? CSR_NONE : CSR_CLEAR;
                 end
                 default: begin
-                    csr_read  = 1'b0;
-                    csr_write = 1'b0;
+                    csr_read = 1'b0;
+                    csr_upd  = CSR_NONE;
                 end
             endcase
         end
         else begin
-            csr_read  = 1'b0;
-            csr_write = 1'b0;
+            csr_read = 1'b0;
+            csr_upd  = CSR_NONE;
         end
     end
 

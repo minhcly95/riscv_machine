@@ -37,9 +37,7 @@ package core_pkg;
         SRC_RI,
         SRC_PI,
         SRC_ZI,
-        SRC_MR,
-        SRC_CA,
-        SRC_CI
+        SRC_MR
     } exec_src_e;
 
     typedef enum logic [4:0] {
@@ -82,15 +80,15 @@ package core_pkg;
         EXEC_ALU = 3'b000,
         EXEC_MUL = 3'b010,
         EXEC_DIV = 3'b011,
-        EXEC_CSR = 3'b100,
         EXEC_RSV = 3'b101
     } exec_engine_e;
 
-    typedef enum logic [1:0] {
+    typedef enum logic [2:0] {
         WB_NONE,
         WB_FETCH,
         WB_EXEC,
-        WB_MEM
+        WB_MEM,
+        WB_CSR
     } wb_src_e;
 
     typedef enum logic [1:0] {
@@ -162,6 +160,13 @@ package core_pkg;
         SYS_CSRRSI = 3'b110,
         SYS_CSRRCI = 3'b111
     } sys_op_e;
+
+    typedef enum logic [1:0] {
+        CSR_NONE  = 2'b00,
+        CSR_WRITE = 2'b01,
+        CSR_SET   = 2'b10,
+        CSR_CLEAR = 2'b11
+    } csr_upd_e;
 
     typedef enum logic [1:0] {
         PRIV_U = 2'b00,

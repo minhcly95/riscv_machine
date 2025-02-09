@@ -7,9 +7,9 @@ module core_csr (
     // From/to EXEC stage
     input  logic [11:0]           csr_id,
     input  logic                  csr_read,
-    input  logic                  csr_write,
+    input  core_pkg::csr_upd_e    csr_upd,
     output logic [31:0]           csr_rdata,
-    input  logic [31:0]           csr_wdata,
+    input  logic [31:0]           csr_udata,
     input  logic                  mret,
     input  logic                  sret,
     input  logic                  wfi,
@@ -272,6 +272,9 @@ module core_csr (
     satp_mode_e   satp_mode;
     logic [21:0]  satp_ppn;
 
+    // Updated value
+    logic [31:0]  csr_wdata;
+
     // Valid value check conditions
     logic         valid_mpp;
     logic         valid_mtvec_mode;
@@ -291,6 +294,7 @@ module core_csr (
 
     // Final write enable signal
     // Take into account the legality of the write
+    logic         csr_write;
     logic         csr_write_en;
 
     // Trap helper
@@ -465,6 +469,16 @@ module core_csr (
     end
 
     // ----------------- Write data -------------------
+    always_comb begin
+        case (csr_upd)
+            CSR_WRITE: csr_wdata = csr_udata;
+            CSR_SET:   csr_wdata = csr_rdata | csr_udata;
+            CSR_CLEAR: csr_wdata = csr_rdata & ~csr_udata;
+            default:   csr_wdata = csr_rdata;
+        endcase
+    end
+
+    assign csr_write    = (csr_upd != CSR_NONE);
     assign csr_write_en = csr_en & csr_write & ~exception_valid;
 
     // mstatus_sie

@@ -63,9 +63,9 @@ module core_top #(
     logic         csr_en;
     logic [11:0]  csr_id;
     logic         csr_read;
-    logic         csr_write;
+    csr_upd_e     csr_upd;
     logic [31:0]  csr_rdata;
-    logic [31:0]  csr_wdata;
+    logic [31:0]  csr_udata;
     logic         mret;
     logic         sret;
     logic         wfi;
@@ -205,9 +205,8 @@ module core_top #(
         .exec_result            (exec_result),
         .csr_id                 (csr_id),
         .csr_read               (csr_read),
-        .csr_write              (csr_write),
-        .csr_rdata              (csr_rdata),
-        .csr_wdata              (csr_wdata),
+        .csr_upd                (csr_upd),
+        .csr_udata              (csr_udata),
         .mret                   (mret),
         .sret                   (sret),
         .wfi                    (wfi),
@@ -264,9 +263,9 @@ module core_top #(
         .instr_done             (instr_done),
         .csr_id                 (csr_id),
         .csr_read               (csr_read),
-        .csr_write              (csr_write),
+        .csr_upd                (csr_upd),
         .csr_rdata              (csr_rdata),
-        .csr_wdata              (csr_wdata),
+        .csr_udata              (csr_udata),
         .mret                   (mret),
         .sret                   (sret),
         .wfi                    (wfi),
@@ -351,6 +350,7 @@ module core_top #(
         .wb_src                 (wb_src),
         .exec_result            (exec_result),
         .mem_rdata              (mem_rdata),
+        .csr_rdata              (csr_rdata),
         .reg_d_write            (reg_d_write),
         .reg_d_value            (reg_d_value)
     );

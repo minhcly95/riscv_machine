@@ -6,6 +6,8 @@ module core_wb_mux (
     input  logic [31:0]          exec_result,
     // From MEM stage
     input  logic [31:0]          mem_rdata,
+    // From CSR
+    input  logic [31:0]          csr_rdata,
     // To Reg file
     output logic                 reg_d_write,
     output logic [31:0]          reg_d_value
@@ -19,6 +21,7 @@ module core_wb_mux (
             WB_FETCH: reg_d_value = pc_plus_4;
             WB_EXEC:  reg_d_value = exec_result;
             WB_MEM:   reg_d_value = mem_rdata;
+            WB_CSR:   reg_d_value = csr_rdata;
             default:  reg_d_value = 'x;
         endcase
     end

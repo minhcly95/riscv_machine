@@ -31,9 +31,8 @@ module core_stage_exec (
     // To CSR
     output logic [11:0]           csr_id,
     output logic                  csr_read,
-    output logic                  csr_write,
-    input  logic [31:0]           csr_rdata,
-    output logic [31:0]           csr_wdata,
+    output core_pkg::csr_upd_e    csr_upd,
+    output logic [31:0]           csr_udata,
     output logic                  mret,
     output logic                  sret,
     output logic                  wfi,
@@ -116,7 +115,7 @@ module core_stage_exec (
         .sc             (sc),
         .csr_id         (csr_id),
         .csr_read       (csr_read),
-        .csr_write      (csr_write),
+        .csr_upd        (csr_upd),
         .ecall          (ecall),
         .ebreak         (ebreak),
         .mret           (mret),
@@ -145,7 +144,6 @@ module core_stage_exec (
         .imm_val         (imm_val),
         .pc              (pc),
         .mem_last_rdata  (mem_last_rdata),
-        .csr_rdata       (csr_rdata),
         .src_a           (src_a),
         .src_b           (src_b)
     );
@@ -180,7 +178,6 @@ module core_stage_exec (
         .alu_result     (alu_result),
         .mul_result     (mul_result),
         .div_result     (div_result),
-        .csr_rdata      (csr_rdata),
         .mem_rsv_valid  (mem_rsv_valid),
         .exec_result    (exec_result)
     );
@@ -225,7 +222,7 @@ module core_stage_exec (
     );
 
     // ----------------- CSR output -------------------
-    assign csr_wdata = alu_result;
+    assign csr_udata = alu_result;
 
     // ----------------- Exceptions -------------------
     core_exec_exception u_exec_exception(
