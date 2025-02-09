@@ -22,12 +22,9 @@ module core_stage_fetch #(
     input  logic         imem_ready,
     output logic [31:0]  imem_addr,
     input  logic [31:0]  imem_rdata,
-    input  logic         imem_err,
     // From Trap handler
     input  logic         m_interrupt_valid,
-    input  logic         s_interrupt_valid,
-    // To Trap handler
-    output logic         ex_instr_access_fault
+    input  logic         s_interrupt_valid
 );
 
     logic        fetch_done;
@@ -68,8 +65,5 @@ module core_stage_fetch #(
     always_ff @(posedge clk) begin
         if (fetch_done) instr <= imem_rdata;
     end
-
-    // Access fault happens when memory interface returns with an error
-    assign ex_instr_access_fault = fetch_done & imem_err;
 
 endmodule

@@ -1,7 +1,7 @@
 // Top-level testbench
 // Consists of the core, a RAM, a clock generator, and a MTIME counter.
 module core_tb_top #(
-    parameter  RESET_VECTOR = 32'h0000_0000,    // Value of PC when reset
+    parameter  RESET_VECTOR = 32'h8000_0000,    // Value of PC when reset
     parameter  RAM_SIZE = 32'h0010_0000         // RAM size in bytes
 )(
     input  logic  rst_n,
@@ -16,7 +16,7 @@ module core_tb_top #(
     logic         psel;
     logic         penable;
     logic         pready;
-    logic [31:0]  paddr;
+    logic [33:0]  paddr;
     logic         pwrite;
     logic [31:0]  pwdata;
     logic  [3:0]  pwstrb;
@@ -24,6 +24,8 @@ module core_tb_top #(
     logic         pslverr;
 
     logic [63:0]  mtime;
+
+    logic         invalid_access;
 
     // --------------------- Core ---------------------
     core_top #(
@@ -39,7 +41,7 @@ module core_tb_top #(
         .pwdata        (pwdata),
         .pwstrb        (pwstrb),
         .prdata        (prdata),
-        .pslverr       (pslverr),
+        .pslverr       (pslverr | invalid_access),
         .mtime         (mtime),
         .int_m_ext     (int_m_ext),
         .mtimer_int    (mtimer_int)
@@ -47,19 +49,22 @@ module core_tb_top #(
 
     // --------------------- RAM ----------------------
     ram #(
-        .RAM_SIZE      (RAM_SIZE)
+        .RAM_SIZE      (RAM_SIZE),
+        .ADDR_W        (31)
     ) u_ram(
         .clk           (clk),
         .psel          (psel),
         .penable       (penable),
         .pready        (pready),
-        .paddr         (paddr),
+        .paddr         (paddr[30:0]),
         .pwrite        (pwrite),
         .pwdata        (pwdata),
         .pwstrb        (pwstrb),
         .prdata        (prdata),
         .pslverr       (pslverr)
     );
+
+    assign invalid_access = (paddr[33:31] != 3'b001);
 
     // ------------------- Clock gen ------------------
     initial begin

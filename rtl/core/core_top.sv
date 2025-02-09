@@ -7,7 +7,7 @@ module core_top #(
     output logic         psel,
     output logic         penable,
     input  logic         pready,
-    output logic [31:0]  paddr,
+    output logic [33:0]  paddr,
     output logic         pwrite,
     output logic [31:0]  pwdata,
     output logic  [3:0]  pwstrb,
@@ -97,32 +97,37 @@ module core_top #(
     logic         cfg_stip;
     logic         cfg_ssip;
     logic         ex_csr_illegal_instr;
-    logic         ex_instr_access_fault;
     logic         ex_ecall;
     logic         ex_ebreak;
     logic         ex_exec_illegal_instr;
     logic         ex_instr_misaligned;
     logic         ex_load_misaligned;
     logic         ex_store_misaligned;
+    logic         ex_instr_access_fault;
     logic         ex_load_access_fault;
     logic         ex_store_access_fault;
+    logic         ex_instr_page_fault;
+    logic         ex_load_page_fault;
+    logic         ex_store_page_fault;
 
-    // I-mem interface
+    // Memory interface
     logic         imem_valid;
     logic         imem_ready;
     logic [31:0]  imem_addr;
     logic [31:0]  imem_rdata;
-    logic         imem_err;
-
-    // D-mem interface
     logic         dmem_valid;
     logic         dmem_ready;
     logic [31:0]  dmem_addr;
-    logic         dmem_write;
+    mem_dir_e     dmem_dir;
     logic [31:0]  dmem_wdata;
     logic  [3:0]  dmem_wstrb;
     logic [31:0]  dmem_rdata;
-    logic         dmem_err;
+    priv_e        priv_imem;
+    priv_e        priv_dmem;
+    logic         cfg_sum;
+    logic         cfg_mxr;
+    satp_mode_e   cfg_satp_mode;
+    logic [21:0]  cfg_satp_ppn;
 
     // ------------------ Controller ------------------
     core_controller u_controller(
@@ -164,10 +169,8 @@ module core_top #(
         .imem_ready             (imem_ready),
         .imem_addr              (imem_addr),
         .imem_rdata             (imem_rdata),
-        .imem_err               (imem_err),
         .m_interrupt_valid      (m_interrupt_valid),
-        .s_interrupt_valid      (s_interrupt_valid),
-        .ex_instr_access_fault  (ex_instr_access_fault)
+        .s_interrupt_valid      (s_interrupt_valid)
     );
 
     // ------------------ EXEC stage ------------------
@@ -227,13 +230,10 @@ module core_top #(
         .dmem_valid             (dmem_valid),
         .dmem_ready             (dmem_ready),
         .dmem_addr              (dmem_addr),
-        .dmem_write             (dmem_write),
+        .dmem_dir               (dmem_dir),
         .dmem_wdata             (dmem_wdata),
         .dmem_wstrb             (dmem_wstrb),
-        .dmem_rdata             (dmem_rdata),
-        .dmem_err               (dmem_err),
-        .ex_load_access_fault   (ex_load_access_fault),
-        .ex_store_access_fault  (ex_store_access_fault)
+        .dmem_rdata             (dmem_rdata)
     );
 
     // ------------------- Reg file -------------------
@@ -284,6 +284,12 @@ module core_top #(
         .cfg_stip               (cfg_stip),
         .cfg_ssip               (cfg_ssip),
         .ex_csr_illegal_instr   (ex_csr_illegal_instr),
+        .priv_imem              (priv_imem),
+        .priv_dmem              (priv_dmem),
+        .cfg_sum                (cfg_sum),
+        .cfg_mxr                (cfg_mxr),
+        .cfg_satp_mode          (cfg_satp_mode),
+        .cfg_satp_ppn           (cfg_satp_ppn),
         .mtime                  (mtime),
         .int_m_ext              (int_m_ext),
         .mtimer_int             (mtimer_int)
@@ -297,15 +303,13 @@ module core_top #(
         .imem_ready             (imem_ready),
         .imem_addr              (imem_addr),
         .imem_rdata             (imem_rdata),
-        .imem_err               (imem_err),
         .dmem_valid             (dmem_valid),
         .dmem_ready             (dmem_ready),
         .dmem_addr              (dmem_addr),
-        .dmem_write             (dmem_write),
+        .dmem_dir               (dmem_dir),
         .dmem_wdata             (dmem_wdata),
         .dmem_wstrb             (dmem_wstrb),
         .dmem_rdata             (dmem_rdata),
-        .dmem_err               (dmem_err),
         .psel                   (psel),
         .penable                (penable),
         .pready                 (pready),
@@ -314,7 +318,19 @@ module core_top #(
         .pwdata                 (pwdata),
         .pwstrb                 (pwstrb),
         .prdata                 (prdata),
-        .pslverr                (pslverr)
+        .pslverr                (pslverr),
+        .priv_imem              (priv_imem),
+        .priv_dmem              (priv_dmem),
+        .cfg_sum                (cfg_sum),
+        .cfg_mxr                (cfg_mxr),
+        .cfg_satp_mode          (cfg_satp_mode),
+        .cfg_satp_ppn           (cfg_satp_ppn),
+        .ex_instr_access_fault  (ex_instr_access_fault),
+        .ex_load_access_fault   (ex_load_access_fault),
+        .ex_store_access_fault  (ex_store_access_fault),
+        .ex_instr_page_fault    (ex_instr_page_fault),
+        .ex_load_page_fault     (ex_load_page_fault),
+        .ex_store_page_fault    (ex_store_page_fault)
     );
 
     // --------------- Write-back mux -----------------
@@ -351,7 +367,6 @@ module core_top #(
         .ex_csr_illegal_instr   (ex_csr_illegal_instr),
         .instr                  (instr),
         .imem_addr              (imem_addr),
-        .ex_instr_access_fault  (ex_instr_access_fault),
         .pc_new                 (pc_new),
         .mem_addr               (mem_addr),
         .ex_ecall               (ex_ecall),
@@ -360,8 +375,12 @@ module core_top #(
         .ex_instr_misaligned    (ex_instr_misaligned),
         .ex_load_misaligned     (ex_load_misaligned),
         .ex_store_misaligned    (ex_store_misaligned),
+        .ex_instr_access_fault  (ex_instr_access_fault),
         .ex_load_access_fault   (ex_load_access_fault),
         .ex_store_access_fault  (ex_store_access_fault),
+        .ex_instr_page_fault    (ex_instr_page_fault),
+        .ex_load_page_fault     (ex_load_page_fault),
+        .ex_store_page_fault    (ex_store_page_fault),
         .int_m_ext              (int_m_ext),
         .mtimer_int             (mtimer_int)
     );

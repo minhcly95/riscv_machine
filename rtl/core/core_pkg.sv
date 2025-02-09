@@ -119,9 +119,10 @@ package core_pkg;
     } mem_src_e;
 
     typedef enum logic [1:0] {
-        MEM_READ     = 2'b00,
-        MEM_WRITE    = 2'b01,
-        MEM_READ_AMO = 2'b10
+        MEM_EXEC     = 2'b00,
+        MEM_READ     = 2'b01,
+        MEM_WRITE    = 2'b10,
+        MEM_READ_AMO = 2'b11
     } mem_dir_e;
 
     typedef enum logic [2:0] {
@@ -172,6 +173,11 @@ package core_pkg;
         SPRIV_U = 1'b0,
         SPRIV_S = 1'b1
     } spriv_e;
+
+    typedef enum logic [0:0] {
+        SATP_BARE = 1'b0,
+        SATP_SV32 = 1'b1
+    } satp_mode_e;
 
     typedef enum logic [5:0] {
         EX_INSTR_MISALIGNED   = 6'd0,

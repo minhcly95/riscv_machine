@@ -9,6 +9,7 @@ lint_off -rule UNUSEDSIGNAL -file "*/rtl/top/ram.sv" -match "Bits of signal are 
 // Core
 lint_off -rule UNUSEDSIGNAL -file "*/rtl/core/exec/core_imm_parser.sv" -match "Bits of signal are not used: 'instr'[6:0]"
 lint_off -rule UNUSEDSIGNAL -file "*/rtl/core/core_csr.sv" -match "Bits of signal are not used: 'pc'[1:0]"
+lint_off -rule UNUSEDSIGNAL -file "*/rtl/core/core_mem_if.sv" -match "Bits of signal are not used: 'pte'[9:8,5]"
 
 // UART
 lint_off -rule PINCONNECTEMPTY -file "*/rtl/uart/uart_tx.sv" -match "Cell pin connected by name with empty reference: 'count'"

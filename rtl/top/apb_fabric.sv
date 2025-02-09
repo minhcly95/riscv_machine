@@ -8,7 +8,7 @@ module apb_fabric #(
     input  logic                      core_i_psel,
     input  logic                      core_i_penable,
     output logic                      core_i_pready,
-    input  logic [31:0]               core_i_paddr,
+    input  logic [33:0]               core_i_paddr,
     input  logic                      core_i_pwrite,
     input  logic [31:0]               core_i_pwdata,
     input  logic [3:0]                core_i_pwstrb,
@@ -63,10 +63,10 @@ module apb_fabric #(
     logic  dec_invalid;
 
     // Memmory map decode logic
-    assign dec_ram     = (core_i_paddr[31:31] == 1'h0);
-    assign dec_uart    = (core_i_paddr[31:12] == 20'h80000);
-    assign dec_mtimer  = (core_i_paddr[31:16] == 16'h8001);
-    assign dec_plic    = (core_i_paddr[31:26] == 6'b100100);
+    assign dec_ram     = (core_i_paddr[33:31] == 3'b0);
+    assign dec_uart    = (core_i_paddr[33:12] == 22'h80000);
+    assign dec_mtimer  = (core_i_paddr[33:16] == 18'h8001);
+    assign dec_plic    = (core_i_paddr[33:26] == 8'b100100);
     assign dec_invalid = ~|{dec_ram, dec_uart, dec_mtimer, dec_plic};
 
     // PSEL

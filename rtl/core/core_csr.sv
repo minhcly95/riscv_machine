@@ -38,6 +38,13 @@ module core_csr (
     output logic                  cfg_stip,
     output logic                  cfg_ssip,
     output logic                  ex_csr_illegal_instr,
+    // To Memory interface
+    output core_pkg::priv_e       priv_imem,
+    output core_pkg::priv_e       priv_dmem,
+    output logic                  cfg_sum,
+    output logic                  cfg_mxr,
+    output core_pkg::satp_mode_e  cfg_satp_mode,
+    output logic [21:0]           cfg_satp_ppn,
     // MTIME direct input
     input  logic [63:0]           mtime,
     // From external
@@ -250,6 +257,12 @@ module core_csr (
     logic [31:0]  mcause;
     logic [31:0]  mtval;
 
+    logic         senvcfg_fiom;
+    logic         menvcfg_fiom;
+
+    satp_mode_e   satp_mode;
+    logic [21:0]  satp_ppn;
+
     // Valid value check conditions
     logic         valid_mpp;
     logic         valid_mtvec_mode;
@@ -367,8 +380,8 @@ module core_csr (
             CSR_STVAL:         csr_rdata = stval;
             CSR_SIP:           csr_rdata = {22'b0, seip, 3'b0, stip, 3'b0, ssip, 1'b0};
 
-            CSR_SENVCFG:       csr_rdata = 32'b0;
-            CSR_SATP:          csr_rdata = 32'b0;
+            CSR_SENVCFG:       csr_rdata = {31'b0, senvcfg_fiom};
+            CSR_SATP:          csr_rdata = {satp_mode, 9'b0, satp_ppn};
 
             CSR_MSTATUS:       csr_rdata = {9'b0, tsr, tw, tvm, mxr, sum, mprv, 4'b0, mpp, 2'b0, spp, mpie, 1'b0, spie, 1'b0, mie, 1'b0, sie, 1'b0};
             CSR_MSTATUSH:      csr_rdata = 32'b0;
@@ -385,6 +398,8 @@ module core_csr (
             CSR_MCAUSE:        csr_rdata = mcause;
             CSR_MTVAL:         csr_rdata = mtval;
             CSR_MIP:           csr_rdata = {20'b0, int_m_ext, 1'b0, seip, 1'b0, mtimer_int, 1'b0, stip, 3'b0, ssip, 1'b0};
+
+            CSR_MENVCFG:       csr_rdata = {31'b0, menvcfg_fiom};
 
             CSR_MCYCLE:        csr_rdata = mcycle[31:0];
             CSR_MINSTRET:      csr_rdata = minstret[31:0];
@@ -788,17 +803,62 @@ module core_csr (
         else if (csr_write_en & dec_mtval)      mtval <= csr_wdata;
     end
 
+    // senvcfg
+    floper #(
+        .WIDTH    (1),
+        .RST_VAL  (0)
+    ) u_flop_senvcfg(
+        .clk      (clk),
+        .rst_n    (rst_n),
+        .en       (csr_write_en & dec_senvcfg),
+        .d        (csr_wdata[0]),
+        .q        (senvcfg_fiom)
+    );
+
+    // menvcfg
+    floper #(
+        .WIDTH    (1),
+        .RST_VAL  (0)
+    ) u_flop_menvcfg(
+        .clk      (clk),
+        .rst_n    (rst_n),
+        .en       (csr_write_en & dec_menvcfg),
+        .d        (csr_wdata[0]),
+        .q        (menvcfg_fiom)
+    );
+
+    // satp
+    floper #(
+        .WIDTH    (23),
+        .RST_VAL  (0)
+    ) u_flop_satp(
+        .clk      (clk),
+        .rst_n    (rst_n),
+        .en       (csr_write_en & dec_satp),
+        .d        ({csr_wdata[31], csr_wdata[21:0]}),
+        .q        ({satp_mode, satp_ppn})
+    );
+
+    // -------------- Effective privilege -------------
+    assign priv_imem = priv;
+    assign priv_dmem = mprv ? mpp : priv;
+
     // -------------- Configuration output ------------
-    assign cfg_mie  = mie;
-    assign cfg_sie  = sie;
-    assign cfg_meie = meie;
-    assign cfg_mtie = mtie;
-    assign cfg_seie = seie;
-    assign cfg_stie = stie;
-    assign cfg_ssie = ssie;
-    assign cfg_seip = seip;
-    assign cfg_stip = stip;
-    assign cfg_ssip = ssip;
+    assign cfg_mie       = mie;
+    assign cfg_sie       = sie;
+    assign cfg_meie      = meie;
+    assign cfg_mtie      = mtie;
+    assign cfg_seie      = seie;
+    assign cfg_stie      = stie;
+    assign cfg_ssie      = ssie;
+    assign cfg_seip      = seip;
+    assign cfg_stip      = stip;
+    assign cfg_ssip      = ssip;
+
+    assign cfg_mxr       = mxr;
+    assign cfg_sum       = sum;
+    assign cfg_satp_mode = satp_mode;
+    assign cfg_satp_ppn  = satp_ppn;
 
     // --------------- Valid value check --------------
     // mstatus_mpp

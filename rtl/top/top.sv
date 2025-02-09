@@ -24,7 +24,7 @@ module top #(
     logic                      core_i_psel;
     logic                      core_i_penable;
     logic                      core_i_pready;
-    logic [31:0]               core_i_paddr;
+    logic [33:0]               core_i_paddr;
     logic                      core_i_pwrite;
     logic [31:0]               core_i_pwdata;
     logic [3:0]                core_i_pwstrb;

@@ -25,7 +25,6 @@ module core_trap_handler (
     // From FETCH
     input  logic [31:0]           instr,
     input  logic [31:0]           imem_addr,
-    input  logic                  ex_instr_access_fault,
     // From EXEC
     input  logic [31:0]           pc_new,
     input  logic [31:0]           mem_addr,
@@ -35,9 +34,13 @@ module core_trap_handler (
     input  logic                  ex_instr_misaligned,
     input  logic                  ex_load_misaligned,
     input  logic                  ex_store_misaligned,
-    // From MEM
+    // From Memory interface
+    input  logic                  ex_instr_access_fault,
     input  logic                  ex_load_access_fault,
     input  logic                  ex_store_access_fault,
+    input  logic                  ex_instr_page_fault,
+    input  logic                  ex_load_page_fault,
+    input  logic                  ex_store_page_fault,
     // From external
     input  logic                  int_m_ext,
     input  logic                  mtimer_int
@@ -59,11 +62,14 @@ module core_trap_handler (
         ex_csr_illegal_instr,
         ex_exec_illegal_instr,
         ex_instr_misaligned,
-        ex_instr_access_fault,
         ex_load_misaligned,
         ex_store_misaligned,
+        ex_instr_access_fault,
         ex_load_access_fault,
         ex_store_access_fault,
+        ex_instr_page_fault,
+        ex_load_page_fault,
+        ex_store_page_fault,
         ex_ecall,
         ex_ebreak
     };
@@ -103,7 +109,9 @@ module core_trap_handler (
 
     // The priority of exceptions and interrupts is described in the spec
     always_comb begin
-        if (ex_instr_access_fault)
+        if (ex_instr_page_fault)
+            exception_cause = EX_INSTR_PAGE_FAULT;
+        else if (ex_instr_access_fault)
             exception_cause = EX_INSTR_ACCESS_FAULT;
         else if (ex_csr_illegal_instr | ex_exec_illegal_instr)
             exception_cause = EX_ILLEGAL_INSTR;
@@ -117,6 +125,10 @@ module core_trap_handler (
             endcase
         else if (ex_ebreak)
             exception_cause = EX_BREAKPOINT;
+        else if (ex_load_page_fault)
+            exception_cause = EX_LOAD_PAGE_FAULT;
+        else if (ex_store_page_fault)
+            exception_cause = EX_STORE_PAGE_FAULT;
         else if (ex_load_access_fault)
             exception_cause = EX_LOAD_ACCESS_FAULT;
         else if (ex_store_access_fault)

@@ -18,14 +18,10 @@ module core_stage_mem (
     output logic                 dmem_valid,
     input  logic                 dmem_ready,
     output logic [31:0]          dmem_addr,
-    output logic                 dmem_write,
+    output core_pkg::mem_dir_e   dmem_dir,
     output logic [31:0]          dmem_wdata,
     output logic  [3:0]          dmem_wstrb,
-    input  logic [31:0]          dmem_rdata,
-    input  logic                 dmem_err,
-    // To Trap handler
-    output logic                 ex_load_access_fault,
-    output logic                 ex_store_access_fault
+    input  logic [31:0]          dmem_rdata
 );
 
     import core_pkg::*;
@@ -44,7 +40,7 @@ module core_stage_mem (
     assign dmem_addr = mem_addr;
 
     // D-mem direction
-    assign dmem_write = (mem_dir == MEM_WRITE);
+    assign dmem_dir  = mem_dir;
 
     // Write data must be shifted to the correct lanes
     always_comb begin
@@ -120,7 +116,7 @@ module core_stage_mem (
     // Reservation register
     always_ff @(posedge clk or negedge rst_n) begin
         if (~rst_n) rsv_addr_valid <= 1'b0;
-        else if (mem_stage_valid & mem_stage_ready) begin
+        else if (mem_done) begin
             case (mem_rsv)
                 // LR: set reservation to load addr
                 RSV_SET: begin
@@ -154,30 +150,5 @@ module core_stage_mem (
         .d      (mem_rdata),
         .q      (mem_last_rdata)
     );
-
-    // Access fault happens when memory interface returns with an error
-    always_comb begin
-        if (mem_done & dmem_err) begin
-            case (mem_dir)
-                MEM_READ: begin
-                    ex_load_access_fault  = 1'b1;
-                    ex_store_access_fault = 1'b0;
-                end
-                MEM_WRITE,
-                MEM_READ_AMO: begin
-                    ex_load_access_fault  = 1'b0;
-                    ex_store_access_fault = 1'b1;
-                end
-                default: begin
-                    ex_load_access_fault  = 1'b0;
-                    ex_store_access_fault = 1'b0;
-                end
-            endcase
-        end
-        else begin
-            ex_load_access_fault  = 1'b0;
-            ex_store_access_fault = 1'b0;
-        end
-    end
 
 endmodule
