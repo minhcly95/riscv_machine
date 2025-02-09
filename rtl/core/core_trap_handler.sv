@@ -46,6 +46,7 @@ module core_trap_handler (
     input  logic                  ex_store_page_fault,
     // From external
     input  logic                  int_m_ext,
+    input  logic                  int_s_ext,
     input  logic                  mtimer_int
 );
 
@@ -98,12 +99,14 @@ module core_trap_handler (
 
     assign m_int_me_active = cfg_meie & int_m_ext;
     assign m_int_mt_active = cfg_mtie & mtimer_int;
-    assign m_int_se_active = cfg_seie & cfg_seip & ~cfg_mideleg_se;
+
+    assign m_int_se_active = cfg_seie & (cfg_seip | int_s_ext) & ~cfg_mideleg_se;
     assign m_int_st_active = cfg_stie & cfg_stip & ~cfg_mideleg_st;
     assign m_int_ss_active = cfg_ssie & cfg_ssip & ~cfg_mideleg_ss;
-    assign s_int_se_active = cfg_seie & cfg_seip &  cfg_mideleg_se;
-    assign s_int_st_active = cfg_stie & cfg_stip &  cfg_mideleg_st;
-    assign s_int_ss_active = cfg_ssie & cfg_ssip &  cfg_mideleg_ss;
+
+    assign s_int_se_active = cfg_seie & (cfg_seip | int_s_ext) & cfg_mideleg_se;
+    assign s_int_st_active = cfg_stie & cfg_stip & cfg_mideleg_st;
+    assign s_int_ss_active = cfg_ssie & cfg_ssip & cfg_mideleg_ss;
 
     always_comb begin
         if (check_interrupt) begin

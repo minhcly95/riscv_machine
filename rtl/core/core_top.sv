@@ -17,6 +17,7 @@ module core_top #(
     input  logic [63:0]  mtime,
     // External interrupt
     input  logic         int_m_ext,
+    input  logic         int_s_ext,
     input  logic         mtimer_int
 );
 
@@ -303,6 +304,7 @@ module core_top #(
         .cfg_satp_ppn           (cfg_satp_ppn),
         .mtime                  (mtime),
         .int_m_ext              (int_m_ext),
+        .int_s_ext              (int_s_ext),
         .mtimer_int             (mtimer_int)
     );
 
@@ -397,6 +399,7 @@ module core_top #(
         .ex_load_page_fault     (ex_load_page_fault),
         .ex_store_page_fault    (ex_store_page_fault),
         .int_m_ext              (int_m_ext),
+        .int_s_ext              (int_s_ext),
         .mtimer_int             (mtimer_int)
     );
 

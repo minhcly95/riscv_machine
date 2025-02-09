@@ -54,6 +54,7 @@ module core_csr (
     input  logic [63:0]           mtime,
     // From external
     input  logic                  int_m_ext,
+    input  logic                  int_s_ext,
     input  logic                  mtimer_int
 );
 
@@ -272,7 +273,8 @@ module core_csr (
     satp_mode_e   satp_mode;
     logic [21:0]  satp_ppn;
 
-    // Updated value
+    // Inner value
+    logic [31:0]  csr_rdata_inner;
     logic [31:0]  csr_wdata;
 
     // Valid value check conditions
@@ -373,54 +375,64 @@ module core_csr (
     endgenerate
 
     // ------------------ Read data -------------------
+    // We separate the inner and outer rdata because of seip.
+    // Updating seip only uses the inner version,
+    // but reading seip returns the outer version.
     always_comb begin
         case (csr_id)
-            CSR_CYCLE:         csr_rdata = mcycle[31:0];
-            CSR_TIME:          csr_rdata = mtime[31:0];
-            CSR_INSTRET:       csr_rdata = minstret[31:0];
-            CSR_CYCLEH:        csr_rdata = mcycle[63:32];
-            CSR_TIMEH:         csr_rdata = mtime[63:32];
-            CSR_INSTRETH:      csr_rdata = minstret[63:32];
+            CSR_CYCLE:         csr_rdata_inner = mcycle[31:0];
+            CSR_TIME:          csr_rdata_inner = mtime[31:0];
+            CSR_INSTRET:       csr_rdata_inner = minstret[31:0];
+            CSR_CYCLEH:        csr_rdata_inner = mcycle[63:32];
+            CSR_TIMEH:         csr_rdata_inner = mtime[63:32];
+            CSR_INSTRETH:      csr_rdata_inner = minstret[63:32];
 
-            CSR_SSTATUS:       csr_rdata = {12'b0, mxr, sum, 9'b0, spp, 2'b0, spie, 3'b0, sie, 1'b0};
-            CSR_SIE:           csr_rdata = {22'b0, seie, 3'b0, stie, 3'b0, ssie, 1'b0};
-            CSR_STVEC:         csr_rdata = {stvec_base, stvec_mode};
-            CSR_SCOUNTEREN:    csr_rdata = {29'b0, scounteren_ir, scounteren_tm, scounteren_cy};
+            CSR_SSTATUS:       csr_rdata_inner = {12'b0, mxr, sum, 9'b0, spp, 2'b0, spie, 3'b0, sie, 1'b0};
+            CSR_SIE:           csr_rdata_inner = {22'b0, seie, 3'b0, stie, 3'b0, ssie, 1'b0};
+            CSR_STVEC:         csr_rdata_inner = {stvec_base, stvec_mode};
+            CSR_SCOUNTEREN:    csr_rdata_inner = {29'b0, scounteren_ir, scounteren_tm, scounteren_cy};
 
-            CSR_SSCRATCH:      csr_rdata = sscratch;
-            CSR_SEPC:          csr_rdata = {sepc_base, 2'b00};
-            CSR_SCAUSE:        csr_rdata = scause;
-            CSR_STVAL:         csr_rdata = stval;
-            CSR_SIP:           csr_rdata = {22'b0, seip, 3'b0, stip, 3'b0, ssip, 1'b0};
+            CSR_SSCRATCH:      csr_rdata_inner = sscratch;
+            CSR_SEPC:          csr_rdata_inner = {sepc_base, 2'b00};
+            CSR_SCAUSE:        csr_rdata_inner = scause;
+            CSR_STVAL:         csr_rdata_inner = stval;
+            CSR_SIP:           csr_rdata_inner = {22'b0, seip, 3'b0, stip, 3'b0, ssip, 1'b0};
 
-            CSR_SENVCFG:       csr_rdata = {31'b0, senvcfg_fiom};
-            CSR_SATP:          csr_rdata = {satp_mode, 9'b0, satp_ppn};
+            CSR_SENVCFG:       csr_rdata_inner = {31'b0, senvcfg_fiom};
+            CSR_SATP:          csr_rdata_inner = {satp_mode, 9'b0, satp_ppn};
 
-            CSR_MSTATUS:       csr_rdata = {9'b0, tsr, tw, tvm, mxr, sum, mprv, 4'b0, mpp, 2'b0, spp, mpie, 1'b0, spie, 1'b0, mie, 1'b0, sie, 1'b0};
-            CSR_MSTATUSH:      csr_rdata = 32'b0;
-            CSR_MISA:          csr_rdata = {MISA_MXL_32, 4'b0, MISA_EXT};
-            CSR_MEDELEG:       csr_rdata = medeleg;
-            CSR_MEDELEGH:      csr_rdata = 32'b0;
-            CSR_MIDELEG:       csr_rdata = {22'b0, mideleg_se, 3'b0, mideleg_st, 3'b0, mideleg_ss, 1'b0};
-            CSR_MIE:           csr_rdata = {20'b0, meie, 1'b0, seie, 1'b0, mtie, 1'b0, stie, 3'b0, ssie, 1'b0};
-            CSR_MTVEC:         csr_rdata = {mtvec_base, mtvec_mode};
-            CSR_MCOUNTEREN:    csr_rdata = {29'b0, mcounteren_ir, mcounteren_tm, mcounteren_cy};
+            CSR_MSTATUS:       csr_rdata_inner = {9'b0, tsr, tw, tvm, mxr, sum, mprv, 4'b0, mpp, 2'b0, spp, mpie, 1'b0, spie, 1'b0, mie, 1'b0, sie, 1'b0};
+            CSR_MSTATUSH:      csr_rdata_inner = 32'b0;
+            CSR_MISA:          csr_rdata_inner = {MISA_MXL_32, 4'b0, MISA_EXT};
+            CSR_MEDELEG:       csr_rdata_inner = medeleg;
+            CSR_MEDELEGH:      csr_rdata_inner = 32'b0;
+            CSR_MIDELEG:       csr_rdata_inner = {22'b0, mideleg_se, 3'b0, mideleg_st, 3'b0, mideleg_ss, 1'b0};
+            CSR_MIE:           csr_rdata_inner = {20'b0, meie, 1'b0, seie, 1'b0, mtie, 1'b0, stie, 3'b0, ssie, 1'b0};
+            CSR_MTVEC:         csr_rdata_inner = {mtvec_base, mtvec_mode};
+            CSR_MCOUNTEREN:    csr_rdata_inner = {29'b0, mcounteren_ir, mcounteren_tm, mcounteren_cy};
 
-            CSR_MSCRATCH:      csr_rdata = mscratch;
-            CSR_MEPC:          csr_rdata = {mepc_base, 2'b00};
-            CSR_MCAUSE:        csr_rdata = mcause;
-            CSR_MTVAL:         csr_rdata = mtval;
-            CSR_MIP:           csr_rdata = {20'b0, int_m_ext, 1'b0, seip, 1'b0, mtimer_int, 1'b0, stip, 3'b0, ssip, 1'b0};
+            CSR_MSCRATCH:      csr_rdata_inner = mscratch;
+            CSR_MEPC:          csr_rdata_inner = {mepc_base, 2'b00};
+            CSR_MCAUSE:        csr_rdata_inner = mcause;
+            CSR_MTVAL:         csr_rdata_inner = mtval;
+            CSR_MIP:           csr_rdata_inner = {20'b0, int_m_ext, 1'b0, seip, 1'b0, mtimer_int, 1'b0, stip, 3'b0, ssip, 1'b0};
 
-            CSR_MENVCFG:       csr_rdata = {31'b0, menvcfg_fiom};
+            CSR_MENVCFG:       csr_rdata_inner = {31'b0, menvcfg_fiom};
 
-            CSR_MCYCLE:        csr_rdata = mcycle[31:0];
-            CSR_MINSTRET:      csr_rdata = minstret[31:0];
-            CSR_MCYCLEH:       csr_rdata = mcycle[63:32];
-            CSR_MINSTRETH:     csr_rdata = minstret[63:32];
-            CSR_MCOUNTINHIBIT: csr_rdata = {29'b0, mcountinhibit_ir, 1'b0, mcountinhibit_cy};
+            CSR_MCYCLE:        csr_rdata_inner = mcycle[31:0];
+            CSR_MINSTRET:      csr_rdata_inner = minstret[31:0];
+            CSR_MCYCLEH:       csr_rdata_inner = mcycle[63:32];
+            CSR_MINSTRETH:     csr_rdata_inner = minstret[63:32];
+            CSR_MCOUNTINHIBIT: csr_rdata_inner = {29'b0, mcountinhibit_ir, 1'b0, mcountinhibit_cy};
 
-            default:           csr_rdata = 32'b0;
+            default:           csr_rdata_inner = 32'b0;
+        endcase
+    end
+
+    always_comb begin
+        case (csr_id)
+            CSR_SIP: csr_rdata = csr_rdata_inner | {22'b0, int_s_ext, 9'b0};
+            default: csr_rdata = csr_rdata_inner;
         endcase
     end
 
@@ -472,9 +484,9 @@ module core_csr (
     always_comb begin
         case (csr_upd)
             CSR_WRITE: csr_wdata = csr_udata;
-            CSR_SET:   csr_wdata = csr_rdata | csr_udata;
-            CSR_CLEAR: csr_wdata = csr_rdata & ~csr_udata;
-            default:   csr_wdata = csr_rdata;
+            CSR_SET:   csr_wdata = csr_rdata_inner | csr_udata;
+            CSR_CLEAR: csr_wdata = csr_rdata_inner & ~csr_udata;
+            default:   csr_wdata = csr_rdata_inner;
         endcase
     end
 

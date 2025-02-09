@@ -80,6 +80,7 @@ module top #(
 
     // Interrupt targets
     logic                      int_m_ext;
+    logic                      int_s_ext;
 
     // --------------------- Core ---------------------
     core_top #(
@@ -98,6 +99,7 @@ module top #(
         .pslverr       (core_i_pslverr),
         .mtime         (mtime),
         .int_m_ext     (int_m_ext),
+        .int_s_ext     (int_s_ext),
         .mtimer_int    (mtimer_int)
     );
 
@@ -210,7 +212,7 @@ module top #(
     // -------------------- PLIC ----------------------
     plic_top #(
         .SRC_N    (1),  // 1 interrupt source
-        .TGT_N    (1),  // 1 interrupt target
+        .TGT_N    (2),  // 2 interrupt targets
         .PRIO_W   (2)   // 4-level (2-bit) priority
     ) u_plic(
         .clk      (clk),
@@ -228,6 +230,7 @@ module top #(
             uart_int    // Source 1
         }),
         .int_tgt  ({
+            int_s_ext,  // Target 1
             int_m_ext   // Target 0
         })
     );

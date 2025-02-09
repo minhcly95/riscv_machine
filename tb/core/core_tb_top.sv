@@ -7,6 +7,7 @@ module core_tb_top #(
     input  logic  rst_n,
     // External interrupt
     input  logic  int_m_ext,
+    input  logic  int_s_ext,
     input  logic  mtimer_int
 );
 
@@ -44,6 +45,7 @@ module core_tb_top #(
         .pslverr       (pslverr | invalid_access),
         .mtime         (mtime),
         .int_m_ext     (int_m_ext),
+        .int_s_ext     (int_s_ext),
         .mtimer_int    (mtimer_int)
     );
 
