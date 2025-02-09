@@ -21,6 +21,9 @@ module core_trap_handler (
     input  logic                  cfg_seip,
     input  logic                  cfg_stip,
     input  logic                  cfg_ssip,
+    input  logic                  cfg_mideleg_se,
+    input  logic                  cfg_mideleg_st,
+    input  logic                  cfg_mideleg_ss,
     input  logic                  ex_csr_illegal_instr,
     // From FETCH
     input  logic [31:0]           instr,
@@ -51,11 +54,14 @@ module core_trap_handler (
     logic  int_m_enable;
     logic  int_s_enable;
 
-    logic  int_m_ext_active;
-    logic  int_m_tim_active;
-    logic  int_s_ext_active;
-    logic  int_s_tim_active;
-    logic  int_s_sw_active;
+    logic  m_int_me_active;
+    logic  m_int_mt_active;
+    logic  m_int_se_active;
+    logic  m_int_st_active;
+    logic  m_int_ss_active;
+    logic  s_int_se_active;
+    logic  s_int_st_active;
+    logic  s_int_ss_active;
 
     // Trap when any exception happens
     assign exception_valid = |{
@@ -90,16 +96,29 @@ module core_trap_handler (
         endcase
     end
 
-    assign int_m_ext_active = cfg_meie & int_m_ext;
-    assign int_m_tim_active = cfg_mtie & mtimer_int;
-    assign int_s_ext_active = cfg_seie & cfg_seip;
-    assign int_s_tim_active = cfg_stie & cfg_stip;
-    assign int_s_sw_active  = cfg_ssie & cfg_ssip;
+    assign m_int_me_active = cfg_meie & int_m_ext;
+    assign m_int_mt_active = cfg_mtie & mtimer_int;
+    assign m_int_se_active = cfg_seie & cfg_seip & ~cfg_mideleg_se;
+    assign m_int_st_active = cfg_stie & cfg_stip & ~cfg_mideleg_st;
+    assign m_int_ss_active = cfg_ssie & cfg_ssip & ~cfg_mideleg_ss;
+    assign s_int_se_active = cfg_seie & cfg_seip &  cfg_mideleg_se;
+    assign s_int_st_active = cfg_stie & cfg_stip &  cfg_mideleg_st;
+    assign s_int_ss_active = cfg_ssie & cfg_ssip &  cfg_mideleg_ss;
 
     always_comb begin
         if (check_interrupt) begin
-            m_interrupt_valid = int_m_enable & |{int_m_ext_active, int_m_tim_active};
-            s_interrupt_valid = int_s_enable & |{int_s_ext_active, int_s_tim_active, int_s_sw_active};
+            m_interrupt_valid = int_m_enable & |{
+                m_int_me_active,
+                m_int_mt_active,
+                m_int_se_active,
+                m_int_st_active,
+                m_int_ss_active
+            };
+            s_interrupt_valid = int_s_enable & |{
+                s_int_se_active,
+                s_int_st_active,
+                s_int_ss_active
+            };
         end
         else begin
             m_interrupt_valid = 1'b0;
@@ -142,20 +161,26 @@ module core_trap_handler (
     end
 
     always_comb begin
-        if (int_m_ext_active)
+        if (m_int_me_active)
             m_interrupt_cause = INT_M_EXTERNAL;
-        else if (int_m_tim_active)
+        else if (m_int_mt_active)
             m_interrupt_cause = INT_M_TIMER;
+        else if (m_int_se_active)
+            m_interrupt_cause = INT_S_EXTERNAL;
+        else if (m_int_ss_active)
+            m_interrupt_cause = INT_S_SOFTWARE;
+        else if (m_int_st_active)
+            m_interrupt_cause = INT_S_TIMER;
         else
             m_interrupt_cause = INT_NONE;
     end
 
     always_comb begin
-        if (int_s_ext_active)
+        if (s_int_se_active)
             s_interrupt_cause = INT_S_EXTERNAL;
-        else if (int_s_sw_active)
+        else if (s_int_ss_active)
             s_interrupt_cause = INT_S_SOFTWARE;
-        else if (int_s_tim_active)
+        else if (s_int_st_active)
             s_interrupt_cause = INT_S_TIMER;
         else
             s_interrupt_cause = INT_NONE;

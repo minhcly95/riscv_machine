@@ -68,6 +68,8 @@ module core_top #(
     logic [31:0]  csr_wdata;
     logic         mret;
     logic         sret;
+    logic         wfi;
+    logic         sfence_vma;
     logic         pc_csr_valid;
     logic [31:0]  pc_csr;
 
@@ -96,6 +98,9 @@ module core_top #(
     logic         cfg_seip;
     logic         cfg_stip;
     logic         cfg_ssip;
+    logic         cfg_mideleg_se;
+    logic         cfg_mideleg_st;
+    logic         cfg_mideleg_ss;
     logic         ex_csr_illegal_instr;
     logic         ex_ecall;
     logic         ex_ebreak;
@@ -205,6 +210,8 @@ module core_top #(
         .csr_wdata              (csr_wdata),
         .mret                   (mret),
         .sret                   (sret),
+        .wfi                    (wfi),
+        .sfence_vma             (sfence_vma),
         .ex_ecall               (ex_ecall),
         .ex_ebreak              (ex_ebreak),
         .ex_exec_illegal_instr  (ex_exec_illegal_instr),
@@ -262,6 +269,8 @@ module core_top #(
         .csr_wdata              (csr_wdata),
         .mret                   (mret),
         .sret                   (sret),
+        .wfi                    (wfi),
+        .sfence_vma             (sfence_vma),
         .pc                     (pc),
         .pc_csr_valid           (pc_csr_valid),
         .pc_csr                 (pc_csr),
@@ -283,6 +292,9 @@ module core_top #(
         .cfg_seip               (cfg_seip),
         .cfg_stip               (cfg_stip),
         .cfg_ssip               (cfg_ssip),
+        .cfg_mideleg_se         (cfg_mideleg_se),
+        .cfg_mideleg_st         (cfg_mideleg_st),
+        .cfg_mideleg_ss         (cfg_mideleg_ss),
         .ex_csr_illegal_instr   (ex_csr_illegal_instr),
         .priv_imem              (priv_imem),
         .priv_dmem              (priv_dmem),
@@ -364,6 +376,9 @@ module core_top #(
         .cfg_seip               (cfg_seip),
         .cfg_stip               (cfg_stip),
         .cfg_ssip               (cfg_ssip),
+        .cfg_mideleg_se         (cfg_mideleg_se),
+        .cfg_mideleg_st         (cfg_mideleg_st),
+        .cfg_mideleg_ss         (cfg_mideleg_ss),
         .ex_csr_illegal_instr   (ex_csr_illegal_instr),
         .instr                  (instr),
         .imem_addr              (imem_addr),

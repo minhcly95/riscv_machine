@@ -36,6 +36,8 @@ module core_stage_exec (
     output logic [31:0]           csr_wdata,
     output logic                  mret,
     output logic                  sret,
+    output logic                  wfi,
+    output logic                  sfence_vma,
     // To Trap handler
     output logic                  ex_ecall,
     output logic                  ex_ebreak,
@@ -119,6 +121,8 @@ module core_stage_exec (
         .ebreak         (ebreak),
         .mret           (mret),
         .sret           (sret),
+        .wfi            (wfi),
+        .sfence_vma     (sfence_vma),
         .illegal_instr  (illegal_instr)
     );
 

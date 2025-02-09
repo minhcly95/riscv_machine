@@ -26,6 +26,8 @@ module core_decoder (
     output logic                    ebreak,
     output logic                    mret,
     output logic                    sret,
+    output logic                    wfi,
+    output logic                    sfence_vma,
     output logic                    illegal_instr
 );
 
@@ -52,9 +54,6 @@ module core_decoder (
 
     logic       zero_rd;
     logic       zero_rs1;
-
-    logic       wfi;
-    logic       sfence_vma;
 
     logic [CTRL_W-1:0] ctrl;
 

@@ -12,6 +12,8 @@ module core_csr (
     input  logic [31:0]           csr_wdata,
     input  logic                  mret,
     input  logic                  sret,
+    input  logic                  wfi,
+    input  logic                  sfence_vma,
     // From FETCH stage
     input  logic [31:0]           pc,
     // To FETCH stage
@@ -37,6 +39,9 @@ module core_csr (
     output logic                  cfg_seip,
     output logic                  cfg_stip,
     output logic                  cfg_ssip,
+    output logic                  cfg_mideleg_se,
+    output logic                  cfg_mideleg_st,
+    output logic                  cfg_mideleg_ss,
     output logic                  ex_csr_illegal_instr,
     // To Memory interface
     output core_pkg::priv_e       priv_imem,
@@ -222,6 +227,10 @@ module core_csr (
     logic         medeleg_software_check;
     logic         medeleg_hardware_error;
 
+    logic         mideleg_se;
+    logic         mideleg_st;
+    logic         mideleg_ss;
+
     logic         seie;
     logic         stie;
     logic         ssie;
@@ -370,7 +379,7 @@ module core_csr (
             CSR_INSTRETH:      csr_rdata = minstret[63:32];
 
             CSR_SSTATUS:       csr_rdata = {12'b0, mxr, sum, 9'b0, spp, 2'b0, spie, 3'b0, sie, 1'b0};
-            CSR_SIE:           csr_rdata = {22'b0, seie, 3'b0, stie, 3'b0, ssip, 1'b0};
+            CSR_SIE:           csr_rdata = {22'b0, seie, 3'b0, stie, 3'b0, ssie, 1'b0};
             CSR_STVEC:         csr_rdata = {stvec_base, stvec_mode};
             CSR_SCOUNTEREN:    csr_rdata = {29'b0, scounteren_ir, scounteren_tm, scounteren_cy};
 
@@ -388,7 +397,7 @@ module core_csr (
             CSR_MISA:          csr_rdata = {MISA_MXL_32, 4'b0, MISA_EXT};
             CSR_MEDELEG:       csr_rdata = medeleg;
             CSR_MEDELEGH:      csr_rdata = 32'b0;
-            CSR_MIDELEG:       csr_rdata = 32'b0010_0010_0010;  // Always delegate S-mode interrupts
+            CSR_MIDELEG:       csr_rdata = {22'b0, mideleg_se, 3'b0, mideleg_st, 3'b0, mideleg_ss, 1'b0};
             CSR_MIE:           csr_rdata = {20'b0, meie, 1'b0, seie, 1'b0, mtie, 1'b0, stie, 3'b0, ssie, 1'b0};
             CSR_MTVEC:         csr_rdata = {mtvec_base, mtvec_mode};
             CSR_MCOUNTEREN:    csr_rdata = {29'b0, mcounteren_ir, mcounteren_tm, mcounteren_cy};
@@ -629,6 +638,18 @@ module core_csr (
         })
     );
 
+    // mideleg
+    floper #(
+        .WIDTH    (3),
+        .RST_VAL  (0)
+    ) u_flop_mideleg(
+        .clk      (clk),
+        .rst_n    (rst_n),
+        .en       (csr_write_en & dec_mideleg),
+        .d        ({csr_wdata[1], csr_wdata[5], csr_wdata[9]}),
+        .q        ({mideleg_ss,   mideleg_st,   mideleg_se})
+    );
+
     // sie
     floper #(
         .WIDTH    (3),
@@ -844,21 +865,24 @@ module core_csr (
     assign priv_dmem = mprv ? mpp : priv;
 
     // -------------- Configuration output ------------
-    assign cfg_mie       = mie;
-    assign cfg_sie       = sie;
-    assign cfg_meie      = meie;
-    assign cfg_mtie      = mtie;
-    assign cfg_seie      = seie;
-    assign cfg_stie      = stie;
-    assign cfg_ssie      = ssie;
-    assign cfg_seip      = seip;
-    assign cfg_stip      = stip;
-    assign cfg_ssip      = ssip;
+    assign cfg_mie        = mie;
+    assign cfg_sie        = sie;
+    assign cfg_meie       = meie;
+    assign cfg_mtie       = mtie;
+    assign cfg_seie       = seie;
+    assign cfg_stie       = stie;
+    assign cfg_ssie       = ssie;
+    assign cfg_seip       = seip;
+    assign cfg_stip       = stip;
+    assign cfg_ssip       = ssip;
+    assign cfg_mideleg_se = mideleg_se;
+    assign cfg_mideleg_st = mideleg_st;
+    assign cfg_mideleg_ss = mideleg_ss;
 
-    assign cfg_mxr       = mxr;
-    assign cfg_sum       = sum;
-    assign cfg_satp_mode = satp_mode;
-    assign cfg_satp_ppn  = satp_ppn;
+    assign cfg_mxr        = mxr;
+    assign cfg_sum        = sum;
+    assign cfg_satp_mode  = satp_mode;
+    assign cfg_satp_ppn   = satp_ppn;
 
     // --------------- Valid value check --------------
     // mstatus_mpp
@@ -916,17 +940,43 @@ module core_csr (
     always_comb begin
         if (csr_en) begin
             case (priv)
-                PRIV_M:  ex_csr_illegal_instr = (csr_read & ~legal_mread) | (csr_write & ~legal_mwrite);
-                PRIV_S:  ex_csr_illegal_instr = (csr_read & ~legal_sread) | (csr_write & ~legal_swrite) | mret;
-                default: ex_csr_illegal_instr = (csr_read & ~legal_uread) | csr_write | mret | sret;
+                PRIV_M:  ex_csr_illegal_instr = |{
+                    csr_read & ~legal_mread,
+                    csr_write & ~legal_mwrite
+                };
+                PRIV_S:  ex_csr_illegal_instr = |{
+                    csr_read & ~legal_sread,
+                    csr_write & ~legal_swrite,
+                    mret,
+                    sret & tsr,
+                    sfence_vma & tvm,
+                    wfi & tw
+                };
+                default: ex_csr_illegal_instr = |{
+                    csr_read & ~legal_uread,
+                    csr_write,
+                    mret,
+                    sret,
+                    sfence_vma,
+                    wfi
+                };
             endcase
         end
-        else
-            ex_csr_illegal_instr = 1'b0;
+        else ex_csr_illegal_instr = 1'b0;
     end
 
     assign legal_mret = csr_en & (priv == PRIV_M) & mret;
-    assign legal_sret = csr_en & (priv != PRIV_U) & sret;
+
+    always_comb begin
+        if (csr_en) begin
+            case (priv)
+                PRIV_M:  legal_sret = sret;
+                PRIV_S:  legal_sret = sret & ~tsr;
+                default: legal_sret = 1'b0;
+            endcase
+        end
+        else legal_sret = 1'b0;
+    end
 
     assign legal_mread = |{
         // U-mode
@@ -1047,7 +1097,7 @@ module core_csr (
         dec_stval,
         dec_sip,
         dec_senvcfg,
-        dec_satp
+        dec_satp & ~tvm
     };
 
     assign legal_swrite = |{
@@ -1062,7 +1112,7 @@ module core_csr (
         dec_stval,
         dec_sip,
         dec_senvcfg,
-        dec_satp
+        dec_satp & ~tvm
     };
 
     assign legal_uread = |{
