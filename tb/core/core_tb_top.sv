@@ -2,7 +2,7 @@
 // Consists of the core, a RAM, a clock generator, and a MTIME counter.
 module core_tb_top #(
     parameter  RESET_VECTOR = 32'h8000_0000,    // Value of PC when reset
-    parameter  RAM_SIZE = 32'h0010_0000         // RAM size in bytes
+    parameter  RAM_SIZE = 32'h0100_0000         // RAM size in bytes (16MB)
 )(
     input  logic  rst_n,
     // External interrupt

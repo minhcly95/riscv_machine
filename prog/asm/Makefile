@@ -1,6 +1,6 @@
 TARGET ?= riscv32-unknown-linux-gnu
 
-ASM = fibonacci seq_mul seq_div access_fault echo core_int
+ASM = fibonacci seq_mul seq_div access_fault echo core_int translate_gather translate_scatter
 ASM_DIR  = $(PROJ_DIR)/build/asm
 ASM_BIN  = $(addprefix $(ASM_DIR)/,$(addsuffix .bin,$(ASM)))
 ASM_OBJ  = $(addprefix $(ASM_DIR)/,$(addsuffix .o,$(ASM)))
