@@ -6,7 +6,7 @@ The RISC-V core consists of 3 stages:
 - `EXEC`: decodes and executes the instructions (partially for `LOAD` and `STORE`).
 - `MEM`: read and write data from/to memory (for `LOAD` and `STORE`).
 
-![](images/block-diagram.png)
+![](images/core.png)
 
 These 3 stages are executed in series without pipelining.
 The Controller handles the switching of the 3 stages.
@@ -95,23 +95,41 @@ When an exception happens, the Register file will be disabled by the Controller.
 
 ### Control and Status Register (CSR)
 The CSR contains all the registers needed to support privilege modes. Currently, M-mode, S-mode, and U-mode are supported.
-It manages the privilege mode, general status `mstatus`, settings to service traps (`mtvec`, `mie`, `mip`, `mcause`, `mtval`, `mepc`),
-and counters (`mcycle`, `minstret`). It receives controls from the `EXEC` stage to extract and update the values of its registers.
+It manages the privilege mode, general status `mstatus`, settings to service traps
+(`mtvec`, `medeleg`, `mideleg`, `mie`, `mip`, `mcause`, `mtval`, `mepc`),
+counters (`mcycle`, `minstret`, `mcounteren`), and address translation (`satp`).
+It receives controls from the `EXEC` stage to extract and update the values of its registers.
 
 When a trap happens, normal update to the CSR is disabled.
 Instead, the CSR receives the trap's data from the Trap handler and modifies the privilege mode and the PC to service the trap.
 PC update request from the CSR to the `FETCH` stage has the highest priority.
 
+For privilege instructions such as `MRET`, `SRET`, `SFENCE.VMA`, and `WFI`,
+after being decoded by the Decoder in the `EXEC` stage,
+the CSR prevents their executions in less privileged modes.
+
+Reading from the `time` CSR will return the `MTIME` value, directly input from a dedicated port from the `MTIMER` module.
+
 ### Memory Interface
-The Memory Interface connects the core to the RAM of the machine via APB bus.
-All addresses go in and out of the memory interface must be aligned with the bus (4B-aligned).
-For narrow write transfer, write strobes should be used.
+The Memory interface connects the core to the RAM of the machine via APB bus.
+Despite being accessed by both the `FETCH` stage and the `MEM` stage,
+no conflict will occur since the stages are not pipelined.
+
+The Memory interface also handles address translation and protection when enabled in the CSR.
+All memory exceptions (access faults and page faults) are reported by the Memory interface.
+
+The *Svadu* extension (hardware update for A/D bits) is not implemented.
+So when a page table entry with A/D bits cleared is encountered,
+a page fault will happen.
+
+In the case of the `AMO` instructions, the Memory interface will check for `W` permission
+even in the load phase (`AMO-0`) to prevent non-atomic execution.
 
 ### Trap Handler
 The Trap handler collects all the exception sources from the other modules, sorts them
 based on the priority list defined in the spec, and generates an exception code for `mcause`.
 It also collects the corresponding `mtval` to be stored in the CSR.
-The Trap handler also signals the Controller besides the CSR.
+The Trap handler also signals the Controller besides the CSR to change the control flow.
 
 The Trap handler checks the interrupt conditions only in the first cycle of the `FETCH` stage.
 If an interrupt happens, the `FETCH` request is cancelled and no memory read is issued.
@@ -123,13 +141,13 @@ so there is no conflict between exceptions and interrupts.
 The Decoder is a subcomponent of the `EXEC` stage. Its job is to decode the instruction fetched from the `FETCH` stage
 into the following conditions:
 - Immediate type: `Z` (Zero), `I`, `S`, `B`, `U`, `J`, `C` (`uimm` in CSR ops).
-- EXEC sources: `RR` (Reg + Reg), `RI` (Reg + Imm), `MR` (Mem + Reg), `PI` (PC + Imm), `ZI` (Zero + Imm), `CA` (CSR + `rs1`), `CI` (CSR + Imm).
+- EXEC sources: `RR` (Reg + Reg), `RI` (Reg + Imm), `MR` (Mem + Reg), `PI` (PC + Imm), `ZI` (Zero + Imm)
 - ALU operation: `ADD`, `SUB`, `SLT`, `SLTU`, `AND`, `OR`, `XOR`, `ANDN` (and-not), `ORN` (or-not), `XNOR`, `SLL`, `SRL`, `SRA`, `MIN`, `MAX`, `MINU`, `MAXU`,
 `OA` (output `rs1`), `OB` (output `rs2`).
 - MUL operation: `MUL`, `MULH`, `MULHSU`, `MULHU`.
 - DIV operation: `DIV`, `DIVU`, `REM`, `REMU`.
-- EXEC output: `ALU`, `MUL`, `DIV`, `RSV` (reservation), `CSR`.
-- Write-back source: `NONE`, `FETCH` (PC + 4), `EXEC`, `MEM`.
+- EXEC output: `ALU`, `MUL`, `DIV`, `RSV` (reservation).
+- Write-back source: `NONE`, `FETCH` (PC + 4), `EXEC`, `MEM`, `CSR`.
 - PC source: `NONE`, `JUMP`, `BR_Z` (branch on zero), `BR_NZ` (branch on non-zero).
 - Mem sources: `ALU_B` (addr from ALU, data from `rs2`), `LAST_ALU` (addr from last, data from ALU).
 - Mem operation: `NONE`, `READ`, `WRITE`.
@@ -160,8 +178,8 @@ into the following conditions:
 | `SC`     | `Z`      | `RI`    | `ADD`                       | `RSV`   |         | `WRITE` if rsv. valid - `RSV_CLEAR` | `ALU_B` - `W`      |
 | `AMO-0`  | `Z`      | `RI`    | `ADD`                       | `MEM`   |         | `READ`                              | `ALU_B` - `W`      |
 | `AMO-1`  |          | `MR`    | Decode from `funct5`        |         |         | `WRITE`                             | `LAST_ALU` - `W`   |
-| `CSR`    |          | `CA`    | `OB`, `OR`, or `ANDN`       | `CSR`   |         |                                     |                    |
-| `CSRI`   | `C`      | `CI`    | `OB`, `OR`, or `ANDN`       | `CSR`   |         |                                     |                    |
+| `CSR`    |          | `RR`    | `OA`                        | `CSR`   |         |                                     |                    |
+| `CSRI`   | `C`      | `RI`    | `OB`                        | `CSR`   |         |                                     |                    |
 
 Empty entries are either `NONE` or N/A (e.g. immediate type is not relevant to R-type operations).
 `AMO` instructions has two `EXEC` and `MEM` phases, hence `AMO-0` and `AMO-1`.
