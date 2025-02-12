@@ -1,0 +1,69 @@
+/dts-v1/;
+
+/ {
+    #address-cells = <2>;
+    #size-cells = <2>;
+
+    // chosen {
+    //     stdout-path = "soc/serial@80000000";
+    //     bootargs = "";
+    // };
+
+    cpus {
+        #address-cells = <1>;
+        #size-cells = <0>;
+        timebase-frequency = <1843200>;
+        cpu0: cpu@0 {
+            device_type = "cpu";
+            reg = <0>;
+            status = "okay";
+            compatible = "riscv";
+            riscv,isa = "rv32ima";
+            mmu-type = "riscv,sv32";
+            clock-frequency = <1843200>;
+            cpu0_intc: interrupt-controller {
+                #interrupt-cells = <1>;
+                compatible = "riscv,cpu-intc";
+                interrupt-controller;
+            };
+        };
+    };
+
+    memory@0 {
+        device_type = "memory";
+        reg = <0x0 0x0 0x0 0x4000000>;   // 64 MB
+    };
+
+    soc {
+        compatible = "simple-bus";
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        serial: serial@80000000 {
+            device_type = "serial";
+            compatible = "ns16550";
+            reg = <0x0 0x80000000 0x0 0x1000>;
+            clock-frequency = <1843200>;
+            interrupt-parent = <&plic>;
+            interrupts = <1>;
+        };
+
+        mtimer: mtimer@80010000 {
+            compatible = "riscv,aclint-mtimer";
+            reg = <0x0 0x80010000 0x0 0x8000>, <0x0 0x80018000 0x0 0x8000>;
+            interrupts-extended = <&cpu0_intc 7>;
+        };
+
+        plic: plic@90000000 {
+			#interrupt-cells = <1>;
+			compatible = "riscv,plic0";
+			interrupt-controller;
+			interrupts-extended = <&cpu0_intc 11>, <&cpu0_intc 9>;
+			reg = <0x0 0x90000000 0x0 0x4000000>;
+			riscv,max-priority = <3>;
+			riscv,ndev = <1>;
+		};
+    };
+};
+

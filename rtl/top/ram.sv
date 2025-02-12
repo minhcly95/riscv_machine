@@ -1,7 +1,8 @@
 // A simple memory model with APB interface
 module ram #(
-    parameter  RAM_SIZE = 32'h0010_0000,    // RAM size in bytes
-    parameter  ADDR_W   = 32
+    parameter  RAM_SIZE  = 32'h0010_0000,    // RAM size in bytes
+    parameter  ADDR_W    = 32,
+    parameter  READ_ONLY = 0
 )(
     input  logic               clk,
     // APB slave
@@ -32,7 +33,7 @@ module ram #(
 
     // Write interface
     always_ff @(posedge clk) begin
-        if (pready & pwrite) begin
+        if (pready & pwrite & ~pslverr) begin
             if (pwstrb[0]) mem_array[word_addr][0  +: 8] <= pwdata[0  +: 8];
             if (pwstrb[1]) mem_array[word_addr][8  +: 8] <= pwdata[8  +: 8];
             if (pwstrb[2]) mem_array[word_addr][16 +: 8] <= pwdata[16 +: 8];
@@ -44,6 +45,6 @@ module ram #(
     assign prdata = mem_array[word_addr];
 
     // Error when out-of-range
-    assign pslverr = |paddr[ADDR_W-1:RAM_SIZE_BW];
+    assign pslverr = |paddr[ADDR_W-1:RAM_SIZE_BW] | (READ_ONLY & pwrite);
 
 endmodule

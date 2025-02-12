@@ -2,7 +2,7 @@
 // Consists of the system and a clock generator
 module tb_top #(
     parameter  RESET_VECTOR = 32'h0000_0000,    // Value of PC when reset
-    parameter  RAM_SIZE = 32'h0010_0000         // RAM size in bytes
+    parameter  RAM_SIZE = 32'h0400_0000         // RAM size in bytes
 )(
     input  logic  rst_n,
     // UART I/O

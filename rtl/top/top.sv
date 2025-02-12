@@ -6,7 +6,7 @@
 // - UART
 module top #(
     parameter  RESET_VECTOR = 32'h0000_0000,    // Value of PC when reset
-    parameter  RAM_SIZE = 32'h0010_0000         // RAM size in bytes
+    parameter  RAM_SIZE = 32'h0400_0000         // RAM size in bytes (64 MB)
 )(
     input  logic  clk,
     input  logic  rst_n,
@@ -19,6 +19,7 @@ module top #(
     localparam UART_ADDR_W   = 12;
     localparam MTIMER_ADDR_W = 16;
     localparam PLIC_ADDR_W   = 26;
+    localparam ROM_ADDR_W    = 16;
 
     // Core -> Fabric
     logic                      core_i_psel;
@@ -70,6 +71,16 @@ module top #(
     logic [3:0]                plic_t_pwstrb;
     logic [31:0]               plic_t_prdata;
     logic                      plic_t_pslverr;
+    // Fabric -> ROM
+    logic                      rom_t_psel;
+    logic                      rom_t_penable;
+    logic                      rom_t_pready;
+    logic [ROM_ADDR_W-1:0]     rom_t_paddr;
+    logic                      rom_t_pwrite;
+    logic [31:0]               rom_t_pwdata;
+    logic [3:0]                rom_t_pwstrb;
+    logic [31:0]               rom_t_prdata;
+    logic                      rom_t_pslverr;
 
     // MTIME
     logic [63:0]               mtime;
@@ -154,7 +165,16 @@ module top #(
         .plic_t_pwdata     (plic_t_pwdata),
         .plic_t_pwstrb     (plic_t_pwstrb),
         .plic_t_prdata     (plic_t_prdata),
-        .plic_t_pslverr    (plic_t_pslverr)
+        .plic_t_pslverr    (plic_t_pslverr),
+        .rom_t_psel        (rom_t_psel),
+        .rom_t_penable     (rom_t_penable),
+        .rom_t_pready      (rom_t_pready),
+        .rom_t_paddr       (rom_t_paddr),
+        .rom_t_pwrite      (rom_t_pwrite),
+        .rom_t_pwdata      (rom_t_pwdata),
+        .rom_t_pwstrb      (rom_t_pwstrb),
+        .rom_t_prdata      (rom_t_prdata),
+        .rom_t_pslverr     (rom_t_pslverr)
     );
 
     // --------------------- RAM ----------------------
@@ -233,6 +253,24 @@ module top #(
             int_s_ext,  // Target 1
             int_m_ext   // Target 0
         })
+    );
+
+    // --------------------- ROM ----------------------
+    ram #(
+        .RAM_SIZE      (1 << 12),
+        .ADDR_W        (ROM_ADDR_W),
+        .READ_ONLY     (1)
+    ) u_rom(
+        .clk           (clk),
+        .psel          (rom_t_psel),
+        .penable       (rom_t_penable),
+        .pready        (rom_t_pready),
+        .paddr         (rom_t_paddr),
+        .pwrite        (rom_t_pwrite),
+        .pwdata        (rom_t_pwdata),
+        .pwstrb        (rom_t_pwstrb),
+        .prdata        (rom_t_prdata),
+        .pslverr       (rom_t_pslverr)
     );
 
 

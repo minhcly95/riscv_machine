@@ -3,7 +3,7 @@ SIM_TARGETS       = $(addprefix sim-,$(SCOPES))
 RUN_TARGETS       = $(addprefix run-,$(SCOPES))
 CLEAN_SIM_TARGETS = $(addprefix clean-sim-,$(SCOPES))
 
-.PHONY: lint waive run sim asm isa c clean clean-lint clean-sim clean-asm clean-isa
+.PHONY: lint waive run sim asm isa c dt clean clean-lint clean-sim clean-asm clean-isa clean-dt run-linux sim-linux
 
 PROJ_DIR ?= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 export PROJ_DIR
@@ -29,8 +29,14 @@ run-top: asm c
 
 run-core: asm isa
 
+run-linux:
+	MODULE=demo_linux $(MAKE) -C tb/top
+
 sim: clean-sim
 	$(MAKE) run
+
+sim-linux: clean-sim-top
+	$(MAKE) run-linux
 
 asm:
 	$(MAKE) -C prog/asm asm
@@ -41,7 +47,10 @@ isa:
 c:
 	$(MAKE) -C prog/c build
 
-clean: clean-lint clean-sim clean-asm clean-isa clean-c
+dt:
+	$(MAKE) -C dt build
+
+clean: clean-lint clean-sim clean-asm clean-isa clean-c clean-dt
 
 clean-lint:
 	rm -f lint/*.log
@@ -56,6 +65,9 @@ clean-isa:
 
 clean-c:
 	$(MAKE) -C prog/c clean
+
+clean-dt:
+	$(MAKE) -C dt clean
 
 
 # Generated rules
